@@ -7,18 +7,39 @@
 import json
 import os
 import queue
+import sys
 import threading
 import time
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
+# 确保在 Windows 控制台 (GBK / CP936) 下不会因 emoji 导致 UnicodeEncodeError 崩溃
+if sys.platform.startswith("win"):
+    try:
+        if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+# 在 Windows GUI (PyInstaller --windowed) 模式下，stdout 和 stderr 为 None，重定向防止 print 或 log 崩溃
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w", encoding="utf-8")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w", encoding="utf-8")
+
 from core.config import load_user_config, public_user_config, save_user_config
 from core.downloader import ComponentDownloader
 from core.generator import generate_astrbot_config, generate_napcat_config
 from core.process_manager import ProcessManager
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    BASE_DIR = sys._MEIPASS
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 WEB_DIR = os.path.join(BASE_DIR, "web")
 
 
@@ -154,19 +175,18 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=WEB_DIR, **kwargs)
 
+    def log_message(self, format, *args):
+        # 禁用默认的 stderr 打印，避免在 Windows 无窗口模式 (--windowed) 下抛出 NoneType 错误导致连接重置
+        pass
+
     def _is_local_request(self):
-        host = (self.headers.get("Host") or "").lower()
-        allowed_hosts = {
-            f"127.0.0.1:{self.server.server_port}",
-            f"localhost:{self.server.server_port}",
-        }
-        if host not in allowed_hosts:
-            return False
-        origin = self.headers.get("Origin")
-        if not origin:
+        client_ip = getattr(self, "client_address", [None])[0]
+        if client_ip in ("127.0.0.1", "::1", "localhost"):
             return True
-        parsed = urlparse(origin)
-        return parsed.scheme == "http" and parsed.netloc.lower() in allowed_hosts
+        host = (self.headers.get("Host") or "").lower().split(":")[0]
+        if host in ("127.0.0.1", "localhost"):
+            return True
+        return False
 
     def _send_json(self, data, status=200):
         payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
@@ -356,7 +376,7 @@ def main():
     webbrowser.open(url)
 
     print("==================================================")
-    print(" 🐋 暴喵大肥鱼一键管家 · 已在桌面浏览器运行")
+    print(" [暴喵大肥鱼一键管家] 已在桌面浏览器运行")
     print(" 如未自动弹出窗口，请手动访问: " + url)
     print(" 按 Ctrl + C 可退出管家服务")
     print("==================================================")
