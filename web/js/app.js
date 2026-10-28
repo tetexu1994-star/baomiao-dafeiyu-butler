@@ -43,7 +43,7 @@ function selectProvider(provider) {
     provider = "deepseek";
   }
   currentConfig.api_provider = provider;
-  document.querySelectorAll(".provider-card, .provider-choice").forEach(el => {
+  document.querySelectorAll(".provider-card, .provider-choice, .provider-option").forEach(el => {
     el.classList.toggle("active", el.dataset.provider === provider);
   });
   const keyContainer = document.getElementById("key-input-container");

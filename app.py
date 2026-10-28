@@ -372,6 +372,36 @@ def main():
     port = server.server_port
     url = f"http://127.0.0.1:{port}"
     print(f"[暴喵大肥鱼一键管家] 本地控制台已启动: {url}")
+
+    # 优先启动原生独立桌面小工具窗口 (pywebview / Edge WebView2)
+    use_webview = False
+    try:
+        import webview
+        use_webview = True
+    except Exception:
+        pass
+
+    if use_webview:
+        try:
+            print("[暴喵大肥鱼一键管家] 正在唤起原生桌面窗口...")
+            window = webview.create_window(
+                title="暴喵大肥鱼一键管家",
+                url=url,
+                width=980,
+                height=720,
+                resizable=True,
+                min_size=(800, 600)
+            )
+            webview.start()
+            if process_mgr:
+                process_mgr.stop_all()
+            server.shutdown()
+            print("[系统] 原生窗口已关闭，管家服务安全退出。")
+            return
+        except Exception as e:
+            print(f"[提示] 原生窗口拉起失败，回退至浏览器: {e}")
+
+    # 回退：使用系统浏览器打开
     time.sleep(0.5)
     webbrowser.open(url)
 
