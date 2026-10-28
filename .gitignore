@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+dist/
+build/
+*.spec
+venv/
+.env
+.DS_Store
+*.log
+runtime/
+data/
+config/
+qrcode.png
