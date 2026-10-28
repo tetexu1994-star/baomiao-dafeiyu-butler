@@ -43,10 +43,13 @@ function selectProvider(provider) {
     provider = "deepseek";
   }
   currentConfig.api_provider = provider;
-  document.querySelectorAll(".provider-card").forEach(el => {
+  document.querySelectorAll(".provider-card, .provider-choice").forEach(el => {
     el.classList.toggle("active", el.dataset.provider === provider);
   });
-  document.getElementById("key-input-container").style.display = provider === "deepseek" ? "block" : "none";
+  const keyContainer = document.getElementById("key-input-container");
+  if (keyContainer) {
+    keyContainer.style.display = provider === "deepseek" ? "block" : "none";
+  }
 }
 
 async function goToStep(step) {
@@ -118,11 +121,36 @@ function setInstallButton(enabled, text) {
 
 function updateInstallStatus(state) {
   if (state.message) {
-    document.getElementById("status-text").textContent = state.message;
+    const textEl = document.getElementById("status-text");
+    if (textEl) textEl.textContent = state.message;
   }
   if (state.progress !== null && state.progress !== undefined) {
-    document.getElementById("progress-bar").style.width = state.progress + "%";
+    const barEl = document.getElementById("progress-bar");
+    if (barEl) barEl.style.width = state.progress + "%";
+    const percentEl = document.getElementById("progress-percent");
+    if (percentEl) percentEl.textContent = state.progress + "%";
   }
+}
+
+function toggleKeyVisibility() {
+  const input = document.getElementById("api_key");
+  if (!input) return;
+  input.type = input.type === "password" ? "text" : "password";
+}
+
+function clearTerminal() {
+  const terminal = document.getElementById("log-terminal");
+  if (terminal) {
+    terminal.innerHTML = '<div class="terminal-line">[系统] 控制台已清空。</div>';
+  }
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    alert("已复制口令: " + text + "\n可以直接发送给 QQ 大肥鱼体验！");
+  }).catch(() => {
+    prompt("请手动复制口令:", text);
+  });
 }
 
 async function waitForInstallation() {
