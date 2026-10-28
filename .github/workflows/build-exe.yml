@@ -8,6 +8,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
 
     steps:
     - uses: actions/checkout@v4
@@ -24,10 +27,12 @@ jobs:
 
     - name: Build Executable
       run: |
-        python build_exe.py
+        pyinstaller --noconfirm --onedir --windowed --name="暴喵大肥鱼一键管家" --add-data "web;web" --add-data "core;core" app.py
+        pyinstaller --noconfirm --onefile --windowed --name="暴喵大肥鱼一键管家" --add-data "web;web" --add-data "core;core" app.py
 
-    - name: Upload Artifact
+    - name: Upload Single EXE Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: 暴喵大肥鱼管家-Windows-x64
-        path: dist/暴喵大肥鱼管家.exe
+        name: 暴喵大肥鱼一键管家-Windows-x64
+        path: dist/暴喵大肥鱼一键管家.exe
+

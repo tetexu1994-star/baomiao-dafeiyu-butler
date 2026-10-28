@@ -8,6 +8,12 @@ import os
 import sys
 import subprocess
 
+# 确保 UTF-8 编码输出
+if sys.platform.startswith("win"):
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 def build():
     print("==================================================")
     print(" 开始打包 [暴喵大肥鱼一键管家.exe] ...")
@@ -26,7 +32,6 @@ def build():
     core_dir = os.path.join(base_dir, "core")
 
     # 构建参数
-    # Windows 下打包加入 web 静态文件
     separator = ";" if sys.platform.startswith("win") else ":"
     add_data_web = f"{web_dir}{separator}web"
     add_data_core = f"{core_dir}{separator}core"
