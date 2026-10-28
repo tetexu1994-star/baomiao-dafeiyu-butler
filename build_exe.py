@@ -19,30 +19,27 @@ def build():
     print(" 开始打包 [暴喵大肥鱼一键管家.exe] ...")
     print("==================================================")
 
-    # 检查是否安装 pyinstaller
-    try:
-        import PyInstaller
-    except ImportError:
-        print("[提示] 正在安装 PyInstaller 打包工具...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller"])
+    print("[提示] 正在校验 PyInstaller 6.22.3...")
+    subprocess.check_call([
+        sys.executable, "-m", "pip", "install",
+        "-r", os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements-build.txt"),
+    ])
 
     # 确定当前目录
     base_dir = os.path.dirname(os.path.abspath(__file__))
     web_dir = os.path.join(base_dir, "web")
-    core_dir = os.path.join(base_dir, "core")
 
     # 构建参数
     separator = ";" if sys.platform.startswith("win") else ":"
     add_data_web = f"{web_dir}{separator}web"
-    add_data_core = f"{core_dir}{separator}core"
 
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--name=暴喵大肥鱼一键管家",
         "--onefile",
         "--clean",
+        "--windowed",
         f"--add-data={add_data_web}",
-        f"--add-data={add_data_core}",
         os.path.join(base_dir, "app.py")
     ]
 

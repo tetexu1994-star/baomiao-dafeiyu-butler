@@ -20,7 +20,7 @@
       </div>
       <div class="header-tags">
         <span class="tag speed"><i class="dot"></i> 暴喵加速专线已连通</span>
-        <span class="tag version">v1.2.0</span>
+        <span class="tag version">v1.3.0</span>
       </div>
     </header>
 
@@ -54,10 +54,10 @@
           <div class="form-group">
             <label for="master_qq">
               主人大号 QQ
-              <span class="badge safe">防盗刷唯一白名单</span>
+              <span class="badge safe">管理员与私聊白名单</span>
             </label>
             <input type="text" id="master_qq" placeholder="输入你自己的常用 QQ 号（如：12345678）">
-            <small class="helper">大肥鱼只会听从这个大号的命令，群里其他人无法盗刷你的 API 额度。</small>
+            <small class="helper">该 QQ 会写入管理员列表，私聊白名单仅允许该 QQ；群聊请结合 AstrBot 会话权限使用。</small>
           </div>
 
           <div class="form-group">
@@ -73,15 +73,15 @@
         <div class="provider-section">
           <label class="section-label">AI 算力与模型源选择</label>
           <div class="provider-cards">
-            <div class="provider-card active" data-provider="baomiao" onclick="selectProvider('baomiao')">
+            <div class="provider-card disabled" data-provider="baomiao">
               <div class="provider-radio"></div>
               <div class="provider-info">
-                <h3>暴喵专属免配通道 <span class="badge recommend">推荐·免买Key</span></h3>
-                <p>无缝借用暴喵管家已登录的算力额度，每日自动领签到积分，0 元免费养鱼！</p>
+                <h3>暴喵专属免配通道 <span class="badge">暂未接入</span></h3>
+                <p>当前版本尚未接入该通道，请使用 DeepSeek API Key，避免配置后无法启动。</p>
               </div>
             </div>
 
-            <div class="provider-card" data-provider="deepseek" onclick="selectProvider('deepseek')">
+            <div class="provider-card active" data-provider="deepseek" onclick="selectProvider('deepseek')">
               <div class="provider-radio"></div>
               <div class="provider-info">
                 <h3>自备 DeepSeek 官方 API Key</h3>
@@ -93,7 +93,7 @@
           <div class="form-group key-group" id="key-input-container" style="display: none; margin-top: 15px;">
             <label for="api_key">DeepSeek API Key</label>
             <input type="password" id="api_key" placeholder="请输入 sk-xxxxxxxxxxxxxxxxxxxxxxxx">
-            <small class="helper">前往 platform.deepseek.com 创建，密钥仅保存在你本机电脑中。</small>
+            <small class="helper">前往 platform.deepseek.com 创建。密钥仅保存在本机，页面加载后不会回显。</small>
           </div>
         </div>
 
@@ -115,7 +115,7 @@
       <section class="card" id="card-step-2">
         <div class="card-header">
           <h2><span class="icon">📦</span> 第二步：全自动极速安装与部署</h2>
-          <span class="tip">自动配置 NapCat、AstrBot 与 Python 运行环境</span>
+          <span class="tip">校验 NapCat 4.18.41，并安装 AstrBot 4.29.3 / Python 3.12 环境</span>
         </div>
 
         <div class="install-status-box">

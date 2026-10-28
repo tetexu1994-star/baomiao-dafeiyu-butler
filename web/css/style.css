@@ -604,3 +604,8 @@ input:focus {
   margin: 0 8px;
   color: rgba(255, 255, 255, 0.15);
 }
+
+.provider-card.disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}

@@ -1,0 +1,77 @@
+import os
+import tempfile
+import unittest
+import zipfile
+
+from app import validate_config
+from core.downloader import ComponentDownloader
+from core.generator import build_astrbot_config, build_napcat_config
+
+
+class DownloaderTests(unittest.TestCase):
+    def test_safe_extract_rejects_zip_slip(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            zip_path = os.path.join(temp_dir, "bad.zip")
+            with zipfile.ZipFile(zip_path, "w") as archive:
+                archive.writestr("../escape.txt", "bad")
+            extract_dir = os.path.join(temp_dir, "extract")
+            with self.assertRaises(ValueError):
+                ComponentDownloader._safe_extract_zip(zip_path, extract_dir)
+            self.assertFalse(os.path.exists(os.path.join(temp_dir, "escape.txt")))
+
+
+class GeneratorTests(unittest.TestCase):
+    def setUp(self):
+        self.user_config = {
+            "master_qq": "12345678",
+            "bot_qq": "87654321",
+            "api_provider": "deepseek",
+            "api_key": "sk-test",
+            "api_base": "https://api.deepseek.com/v1",
+            "model_name": "deepseek-chat",
+            "napcat_port": 6199,
+            "astrbot_port": 6185,
+            "whitelist_only": True,
+        }
+
+    def test_astrbot_config_preserves_unrelated_settings(self):
+        existing = {"log_level": "DEBUG", "provider": [{"id": "other"}]}
+        config = build_astrbot_config(existing, self.user_config)
+
+        self.assertEqual(config["log_level"], "DEBUG")
+        self.assertEqual([item["id"] for item in config["provider"]], ["other", "baomiao-deepseek"])
+        self.assertEqual(config["provider_settings"]["default_provider_id"], "baomiao-deepseek")
+        self.assertEqual(config["admins_id"], ["12345678"])
+        self.assertEqual(config["dashboard"]["host"], "127.0.0.1")
+        self.assertEqual(config["platform"][0]["ws_reverse_port"], 6199)
+
+    def test_napcat_reverse_ws_targets_astrbot_single_endpoint(self):
+        config = build_napcat_config({"http": {"enable": False}}, self.user_config)
+        self.assertFalse(config["ws"]["enable"])
+        self.assertEqual(config["reverseWs"]["urls"], ["ws://127.0.0.1:6199/ws"])
+
+    def test_baomiao_provider_is_rejected_until_supported(self):
+        self.user_config["api_provider"] = "baomiao"
+        with self.assertRaisesRegex(ValueError, "尚未接入"):
+            build_astrbot_config({}, self.user_config)
+
+
+class ValidationTests(unittest.TestCase):
+    def test_config_validation(self):
+        valid = {
+            "master_qq": "12345678",
+            "bot_qq": "87654321",
+            "api_provider": "deepseek",
+            "api_key": "sk-test",
+            "api_base": "https://api.deepseek.com/v1",
+            "model_name": "deepseek-chat",
+        }
+        self.assertEqual(validate_config(valid, require_complete=True), "")
+        invalid = dict(valid, master_qq="not-a-qq")
+        self.assertIn("QQ", validate_config(invalid, require_complete=True))
+        unsupported = dict(valid, api_provider="baomiao")
+        self.assertIn("仅支持", validate_config(unsupported))
+
+
+if __name__ == "__main__":
+    unittest.main()

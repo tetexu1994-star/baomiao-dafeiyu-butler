@@ -14,3 +14,5 @@ runtime/
 data/
 config/
 qrcode.png
+
+.codegraph/

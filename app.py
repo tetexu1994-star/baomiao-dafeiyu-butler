@@ -4,186 +4,372 @@
 支持直接运行，或通过 PyInstaller 打包成单文件 .exe
 """
 
-import os
-import sys
 import json
-import time
+import os
 import queue
 import threading
+import time
 import webbrowser
-from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
-# 导入核心模块
-from core.config import load_user_config, save_user_config
-from core.generator import generate_astrbot_config, generate_napcat_config
+from core.config import load_user_config, public_user_config, save_user_config
 from core.downloader import ComponentDownloader
+from core.generator import generate_astrbot_config, generate_napcat_config
 from core.process_manager import ProcessManager
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "web")
 
-# 全局事件队列，用于 Server-Sent Events (SSE) 推送
-event_queue = queue.Queue()
+
+class EventBroker:
+    def __init__(self):
+        self._subscribers = set()
+        self._lock = threading.Lock()
+
+    def subscribe(self):
+        subscriber = queue.Queue(maxsize=200)
+        with self._lock:
+            self._subscribers.add(subscriber)
+        return subscriber
+
+    def unsubscribe(self, subscriber):
+        with self._lock:
+            self._subscribers.discard(subscriber)
+
+    def publish(self, event_dict):
+        payload = json.dumps(event_dict, ensure_ascii=False)
+        with self._lock:
+            subscribers = list(self._subscribers)
+        for subscriber in subscribers:
+            try:
+                subscriber.put_nowait(payload)
+            except queue.Full:
+                pass
+
+
+event_broker = EventBroker()
 user_config = load_user_config()
+config_lock = threading.Lock()
+install_lock = threading.Lock()
+install_state = {
+    "state": "idle",
+    "progress": 0,
+    "message": "等待部署",
+    "error": "",
+}
 downloader = None
 process_mgr = None
 
+
 def broadcast_event(event_dict):
-    try:
-        event_queue.put_nowait(json.dumps(event_dict, ensure_ascii=False))
-    except Exception:
-        pass
+    event_broker.publish(event_dict)
+
+
+def set_install_state(state, message="", progress=None, error=""):
+    with install_lock:
+        install_state["state"] = state
+        install_state["message"] = message or install_state["message"]
+        install_state["error"] = error
+        if progress is not None:
+            install_state["progress"] = max(0, min(100, int(progress)))
+
+
+def get_install_state():
+    with install_lock:
+        return dict(install_state)
+
 
 def on_download_progress(data):
-    broadcast_event({
-        "type": "progress",
-        "message": data.get("message"),
-        "progress": data.get("progress")
-    })
-    broadcast_event({
-        "type": "log",
-        "tag": "下载部署",
-        "text": data.get("message")
-    })
+    message = data.get("message", "")
+    progress = data.get("progress")
+    if get_install_state()["state"] == "running":
+        set_install_state("running", message=message, progress=progress)
+    broadcast_event({"type": "progress", "message": message, "progress": progress})
+    if message:
+        broadcast_event({"type": "log", "tag": "下载部署", "text": message})
+
 
 def on_process_log(data):
     broadcast_event({
         "type": "log",
         "tag": data.get("tag", "System"),
-        "text": data.get("text", "")
+        "text": data.get("text", ""),
     })
+
 
 def on_qr_event(data):
     if data.get("type") in ("base64", "url"):
-        broadcast_event({
-            "type": "qr",
-            "data": data.get("data")
-        })
+        broadcast_event({"type": "qr", "data": data.get("data")})
     elif data.get("status") == "success":
-        broadcast_event({
-            "type": "login_success"
-        })
+        broadcast_event({"type": "login_success"})
+
+
+def validate_config(data, require_complete=False):
+    if not isinstance(data, dict):
+        return "配置格式错误"
+
+    master_qq = str(data.get("master_qq", "")).strip()
+    bot_qq = str(data.get("bot_qq", "")).strip()
+    api_provider = str(data.get("api_provider", "")).strip()
+    api_key = str(data.get("api_key", "")).strip()
+    api_base = str(data.get("api_base", "")).strip()
+    model_name = str(data.get("model_name", "")).strip()
+
+    if require_complete:
+        if not master_qq.isdigit() or len(master_qq) > 12:
+            return "主人大号 QQ 格式错误"
+        if not bot_qq.isdigit() or len(bot_qq) > 12:
+            return "机器人小号 QQ 格式错误"
+        if not api_key:
+            return "DeepSeek API Key 不能为空"
+    elif master_qq and (not master_qq.isdigit() or len(master_qq) > 12):
+        return "主人大号 QQ 格式错误"
+    elif bot_qq and (not bot_qq.isdigit() or len(bot_qq) > 12):
+        return "机器人小号 QQ 格式错误"
+
+    if api_provider not in {"deepseek", "custom"}:
+        return "当前版本仅支持 DeepSeek 或自定义 OpenAI 兼容接口"
+    if len(api_key) > 512:
+        return "API Key 过长"
+    parsed = urlparse(api_base)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return "API Base URL 格式错误"
+    if len(model_name) > 100:
+        return "模型名称过长"
+    for key in ("napcat_port", "astrbot_port"):
+        try:
+            default_port = 6199 if key == "napcat_port" else 6185
+            port = int(data.get(key, default_port))
+        except (TypeError, ValueError):
+            return f"{key} 必须是端口号"
+        if not 1 <= port <= 65535:
+            return f"{key} 必须在 1-65535 之间"
+    return ""
+
 
 class ButlerHTTPHandler(SimpleHTTPRequestHandler):
+    server_version = "BaomiaoButler/1.3"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=WEB_DIR, **kwargs)
 
+    def _is_local_request(self):
+        host = (self.headers.get("Host") or "").lower()
+        allowed_hosts = {
+            f"127.0.0.1:{self.server.server_port}",
+            f"localhost:{self.server.server_port}",
+        }
+        if host not in allowed_hosts:
+            return False
+        origin = self.headers.get("Origin")
+        if not origin:
+            return True
+        parsed = urlparse(origin)
+        return parsed.scheme == "http" and parsed.netloc.lower() in allowed_hosts
+
+    def _send_json(self, data, status=200):
+        payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def _reject_local(self):
+        self._send_json({"success": False, "message": "仅允许本机访问"}, 403)
+
+    def _read_json_body(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            raise ValueError("Content-Length 无效")
+        if content_length > 1024 * 1024:
+            raise ValueError("请求体过大")
+        content_type = self.headers.get("Content-Type", "")
+        if content_length and not content_type.startswith("application/json"):
+            raise ValueError("请求体必须使用 application/json")
+        body = self.rfile.read(content_length) if content_length > 0 else b""
+        return json.loads(body.decode("utf-8")) if body else {}
+
     def do_GET(self):
+        if not self._is_local_request():
+            self._reject_local()
+            return
         parsed = urlparse(self.path)
         if parsed.path == "/api/config":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(json.dumps(user_config, ensure_ascii=False).encode("utf-8"))
+            with config_lock:
+                self._send_json(public_user_config(user_config))
+        elif parsed.path == "/api/install/status":
+            self._send_json({"success": True, **get_install_state()})
         elif parsed.path == "/api/events":
-            # Server-Sent Events (SSE) 长连接
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream; charset=utf-8")
             self.send_header("Cache-Control", "no-cache")
             self.send_header("Connection", "keep-alive")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
-            
-            while True:
-                try:
-                    data = event_queue.get(timeout=20)
-                    msg = f"data: {data}\n\n"
-                    self.wfile.write(msg.encode("utf-8"))
+            subscriber = event_broker.subscribe()
+            try:
+                while True:
+                    try:
+                        data = subscriber.get(timeout=20)
+                        self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
+                    except queue.Empty:
+                        self.wfile.write(b": ping\n\n")
                     self.wfile.flush()
-                except queue.Empty:
-                    # 发送心跳保活
-                    self.wfile.write(b": ping\n\n")
-                    self.wfile.flush()
-                except Exception:
-                    break
+            except Exception:
+                pass
+            finally:
+                event_broker.unsubscribe(subscriber)
+        elif parsed.path.startswith("/api/"):
+            self._send_json({"success": False, "message": "接口不存在"}, 404)
         else:
             super().do_GET()
 
     def do_POST(self):
+        if not self._is_local_request():
+            self._reject_local()
+            return
+
+        global downloader, process_mgr, user_config
         parsed = urlparse(self.path)
-        content_length = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else ""
-        
-        response_data = {"success": True}
-        
+        try:
+            body = self._read_json_body()
+        except Exception as exc:
+            self._send_json({"success": False, "message": str(exc)}, 400)
+            return
+
         if parsed.path == "/api/config":
-            try:
-                data = json.loads(body)
-                user_config.update(data)
-                save_user_config(user_config)
-                response_data = {"success": True, "config": user_config}
-            except Exception as e:
-                response_data = {"success": False, "message": str(e)}
+            allowed = {
+                "master_qq", "bot_qq", "api_provider", "api_key",
+                "api_base", "model_name", "napcat_port", "astrbot_port",
+                "auto_launch", "enable_tts", "whitelist_only",
+            }
+            data = {key: value for key, value in body.items() if key in allowed}
+            with config_lock:
+                candidate = dict(user_config)
+                candidate.update(data)
+                error = validate_config(candidate, require_complete=False)
+                if not error:
+                    user_config = candidate
+                    save_user_config(user_config)
+            if error:
+                self._send_json({"success": False, "message": error}, 400)
+            else:
+                with config_lock:
+                    self._send_json({"success": True, "config": public_user_config(user_config)})
 
         elif parsed.path == "/api/install":
-            global downloader
-            install_dir = user_config.get("install_dir")
+            if get_install_state()["state"] == "running":
+                self._send_json({"success": False, "message": "部署任务正在进行中"}, 409)
+                return
+            with config_lock:
+                config_snapshot = dict(user_config)
+            error = validate_config(config_snapshot, require_complete=True)
+            if error:
+                self._send_json({"success": False, "message": error}, 400)
+                return
+
+            install_dir = config_snapshot.get("install_dir")
             downloader = ComponentDownloader(install_dir, status_callback=on_download_progress)
-            
+            set_install_state("running", "部署任务已启动", 0)
+
             def run_install():
-                success = downloader.start_setup()
-                if success:
-                    # 生成 AstrBot 与 NapCat 配置文件
-                    generate_astrbot_config(install_dir, user_config)
-                    generate_napcat_config(install_dir, user_config)
-                    on_download_progress({"message": "✅ 配置文件写入与人设注入完成！", "progress": 100})
-            
+                try:
+                    if not downloader.start_setup():
+                        raise RuntimeError(get_install_state()["message"] or "组件部署失败")
+                    generate_astrbot_config(install_dir, config_snapshot)
+                    generate_napcat_config(install_dir, config_snapshot)
+                    set_install_state("completed", "全部组件与配置已准备完成", 100)
+                    broadcast_event({"type": "install_complete"})
+                except Exception as exc:
+                    set_install_state("failed", "部署失败", error=str(exc))
+                    broadcast_event({"type": "log", "tag": "下载部署", "text": f"部署失败: {exc}"})
+                    broadcast_event({"type": "install_failed", "message": str(exc)})
+
             threading.Thread(target=run_install, daemon=True).start()
-            response_data = {"success": True, "message": "部署任务已在后台启动"}
+            self._send_json({"success": True, "message": "部署任务已在后台启动"})
 
         elif parsed.path == "/api/start":
-            global process_mgr
-            install_dir = user_config.get("install_dir")
-            # 确保最新配置写入
-            generate_astrbot_config(install_dir, user_config)
-            generate_napcat_config(install_dir, user_config)
-            
-            if process_mgr is None:
-                process_mgr = ProcessManager(install_dir, log_callback=on_process_log, qr_callback=on_qr_event)
-            
-            bot_qq = user_config.get("bot_qq", "")
-            ok = process_mgr.start_all(bot_qq=bot_qq)
-            response_data = {"success": ok}
+            with config_lock:
+                config_snapshot = dict(user_config)
+            error = validate_config(config_snapshot, require_complete=True)
+            if error:
+                self._send_json({"success": False, "message": error}, 400)
+                return
+            install_dir = config_snapshot["install_dir"]
+            try:
+                generate_astrbot_config(install_dir, config_snapshot)
+                generate_napcat_config(install_dir, config_snapshot)
+                if process_mgr and process_mgr.install_dir != os.path.abspath(install_dir):
+                    process_mgr.stop_all()
+                    process_mgr = None
+                if process_mgr is None:
+                    process_mgr = ProcessManager(
+                        install_dir,
+                        onebot_port=int(config_snapshot.get("napcat_port", 6199)),
+                        log_callback=on_process_log,
+                        qr_callback=on_qr_event,
+                    )
+                ok = process_mgr.start_all(bot_qq=config_snapshot.get("bot_qq", ""))
+                self._send_json({"success": ok, "message": "" if ok else "服务启动失败，请查看日志"})
+            except Exception as exc:
+                self._send_json({"success": False, "message": str(exc)}, 400)
 
         elif parsed.path == "/api/stop":
             if process_mgr:
                 process_mgr.stop_all()
-            response_data = {"success": True}
+            self._send_json({"success": True})
 
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.end_headers()
-        self.wfile.write(json.dumps(response_data, ensure_ascii=False).encode("utf-8"))
+        else:
+            self._send_json({"success": False, "message": "接口不存在"}, 404)
+
+    def do_OPTIONS(self):
+        if not self._is_local_request():
+            self._reject_local()
+            return
+        self._send_json({"success": False, "message": "不支持跨域请求"}, 405)
+
 
 def start_server(port=18999):
-    server = ThreadingHTTPServer(("127.0.0.1", port), ButlerHTTPHandler)
-    print(f"[暴喵大肥鱼一键管家] 本地控制台已启动: http://127.0.0.1:{port}")
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", port), ButlerHTTPHandler)
+    except OSError:
+        if port == 0:
+            raise
+        server = ThreadingHTTPServer(("127.0.0.1", 0), ButlerHTTPHandler)
+    server.daemon_threads = True
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
 
+
 def main():
-    port = 18999
-    start_server(port)
+    server = start_server(18999)
+    port = server.server_port
     url = f"http://127.0.0.1:{port}"
-    
-    # 尝试在桌面打开浏览器窗口
+    print(f"[暴喵大肥鱼一键管家] 本地控制台已启动: {url}")
     time.sleep(0.5)
     webbrowser.open(url)
-    
+
     print("==================================================")
     print(" 🐋 暴喵大肥鱼一键管家 · 已在桌面浏览器运行")
     print(" 如未自动弹出窗口，请手动访问: " + url)
     print(" 按 Ctrl + C 可退出管家服务")
     print("==================================================")
-    
+
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         if process_mgr:
             process_mgr.stop_all()
+        server.shutdown()
         print("\n[系统] 管家已安全退出。")
+
 
 if __name__ == "__main__":
     main()
