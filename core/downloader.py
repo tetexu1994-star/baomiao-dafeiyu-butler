@@ -118,7 +118,31 @@ class ComponentDownloader:
     @staticmethod
     def _python_command():
         if sys.platform.startswith("win"):
-            return ["py", "-3.12"]
+            if shutil.which("py"):
+                try:
+                    res = subprocess.run(
+                        ["py", "-3.12", "-c", "import sys; print(sys.version_info[:2])"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    if res.returncode == 0:
+                        return ["py", "-3.12"]
+                except Exception:
+                    pass
+            for candidate in ("python3.12", "python", "python3"):
+                path = shutil.which(candidate)
+                if path:
+                    try:
+                        res = subprocess.run(
+                            [path, "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"],
+                            timeout=5
+                        )
+                        if res.returncode == 0:
+                            return [path]
+                    except Exception:
+                        pass
+            return None
         if sys.version_info >= (3, 12) and not getattr(sys, "frozen", False):
             return [sys.executable]
         for candidate in ("python3.12", "python3", "python"):
