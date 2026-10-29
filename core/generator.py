@@ -83,7 +83,7 @@ def build_astrbot_config(existing, user_config):
     api_provider = str(user_config.get("api_provider", "deepseek")).strip()
     api_key = str(user_config.get("api_key", "")).strip()
     api_base = str(user_config.get("api_base", "https://api.deepseek.com/v1")).strip()
-    model_name = str(user_config.get("model_name", "deepseek-chat")).strip()
+    model_name = str(user_config.get("model_name") or "deepseek-flash").strip()
     onebot_port = int(user_config.get("napcat_port", 6199))
 
     if api_provider == "baomiao":
@@ -99,7 +99,7 @@ def build_astrbot_config(existing, user_config):
 
     provider = {
         "id": ASTRBOT_PROVIDER_ID,
-        "provider": "openai" if api_provider == "baomiao" else "deepseek",
+        "provider": "openai",
         "type": "openai_chat_completion",
         "provider_type": "chat_completion",
         "enable": True,

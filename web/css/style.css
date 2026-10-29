@@ -920,6 +920,42 @@ body {
   margin-top: 1px;
 }
 
+/* 模型快捷标签 */
+.model-quick-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.model-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  background: #151b34;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.model-tag:hover {
+  background: #1e284c;
+  color: #fff;
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.model-tag.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
 /* 领养下一步行动按钮 (对标蓝底亮色大按钮) */
 .form-action-row {
   margin-top: auto;

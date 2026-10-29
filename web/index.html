@@ -237,6 +237,24 @@
               </p>
             </div>
 
+            <!-- AI 模型设置 -->
+            <div class="form-block">
+              <div class="block-label-row">
+                <label for="model_name">AI 模型名称</label>
+                <span class="field-badge optional">已适配 Flash</span>
+              </div>
+              <div class="input-glow-box">
+                <input type="text" id="model_name" placeholder="请输入模型名称，如 deepseek-flash" autocomplete="off">
+              </div>
+              <div class="model-quick-tags" id="model-quick-tags">
+                <span class="model-tag active" data-model="deepseek-flash" onclick="selectModelTag('deepseek-flash')">⚡ deepseek-flash (推荐)</span>
+                <span class="model-tag" data-model="DeepSeek-V4.1-Flash 1017(1.20x)" onclick="selectModelTag('DeepSeek-V4.1-Flash 1017(1.20x)')">🚀 Flash 1017</span>
+                <span class="model-tag" data-model="DeepSeek-V4.1-Flash" onclick="selectModelTag('DeepSeek-V4.1-Flash')">✨ V4.1-Flash</span>
+                <span class="model-tag" data-model="deepseek-chat" onclick="selectModelTag('deepseek-chat')">🌐 deepseek-chat</span>
+              </div>
+              <p class="block-hint">默认已为您配置 <strong>deepseek-flash</strong>。点击标签切换，或直接在框内自定义修改。</p>
+            </div>
+
             <!-- 白名单安全模式 -->
             <div class="form-block">
               <div class="block-label-row">

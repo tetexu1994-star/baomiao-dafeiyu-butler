@@ -88,7 +88,7 @@ class DesktopPetAPI:
         self.config = load_user_config()
         api_key = self.config.get("api_key", "").strip()
         api_base = self.config.get("api_base", "https://api.deepseek.com/v1").rstrip("/")
-        model_name = self.config.get("model_name", "deepseek-chat")
+        model_name = self.config.get("model_name", "deepseek-flash")
 
         if not api_key or api_key == "bm-free-token":
             return {

@@ -5,7 +5,7 @@ let currentConfig = {
   api_key: "",
   api_key_set: false,
   api_base: "https://open-ai.baomiao.cn/v1",
-  model_name: "deepseek-chat",
+  model_name: "deepseek-flash",
   whitelist_only: false
 };
 
@@ -17,6 +17,12 @@ document.addEventListener("DOMContentLoaded", () => {
   loadConfig();
   initEventStream();
   checkServiceStatus();
+  const modelInput = document.getElementById("model_name");
+  if (modelInput) {
+    modelInput.addEventListener("input", (e) => {
+      updateModelTagActive(e.target.value.trim());
+    });
+  }
 });
 
 function delay(ms) {
@@ -120,6 +126,12 @@ async function loadConfig() {
     const wlEl = document.getElementById("whitelist_only");
     if (wlEl) wlEl.checked = !!currentConfig.whitelist_only;
 
+    const modelInput = document.getElementById("model_name");
+    if (modelInput) {
+      modelInput.value = currentConfig.model_name || "deepseek-flash";
+      updateModelTagActive(modelInput.value);
+    }
+
     // 二次启动智能化：如果已有完整配置，自动跳至第 03 步唤醒大肥鱼并启动服务，免去重复点击流程
     if (currentConfig.master_qq && currentConfig.bot_qq && currentConfig.install_dir) {
       appendLog(`💡 [欢迎回来] 检测到主人 QQ (${currentConfig.master_qq}) 已就绪，自动直达【03 唤醒大肥鱼】...`);
@@ -159,6 +171,21 @@ function selectProvider(provider) {
   }
 }
 
+function selectModelTag(modelName) {
+  const modelInput = document.getElementById("model_name");
+  if (modelInput) {
+    modelInput.value = modelName;
+  }
+  currentConfig.model_name = modelName;
+  updateModelTagActive(modelName);
+}
+
+function updateModelTagActive(modelName) {
+  document.querySelectorAll(".model-tag").forEach(tag => {
+    tag.classList.toggle("active", tag.getAttribute("data-model") === modelName);
+  });
+}
+
 async function goToStep(step) {
   if (step === 2) {
     const master = document.getElementById("master_qq").value.trim();
@@ -192,6 +219,11 @@ async function goToStep(step) {
     currentConfig.bot_qq = bot;
     const wlEl = document.getElementById("whitelist_only");
     currentConfig.whitelist_only = wlEl ? wlEl.checked : false;
+
+    const modelInput = document.getElementById("model_name");
+    if (modelInput && modelInput.value.trim()) {
+      currentConfig.model_name = modelInput.value.trim();
+    }
     if (inputKey) {
       currentConfig.api_key = inputKey;
       currentConfig.api_key_set = true;

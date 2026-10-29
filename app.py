@@ -145,7 +145,7 @@ def test_llm_connection(config):
         else:
             api_base = "https://api.deepseek.com/v1"
     api_key = str(config.get("api_key", "")).strip()
-    model = str(config.get("model_name", "deepseek-chat")).strip()
+    model = str(config.get("model_name") or "deepseek-flash").strip()
 
     if not api_key or api_key == "bm-free-token":
         return False, "未配置有效的 API Key，请填写真实 Key 后重试"
