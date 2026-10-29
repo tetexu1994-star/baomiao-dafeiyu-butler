@@ -149,7 +149,7 @@ def validate_config(data, require_complete=False):
     elif bot_qq and (not bot_qq.isdigit() or len(bot_qq) > 12):
         return "机器人小号 QQ 格式错误"
 
-    if api_provider not in {"baomiao", "deepseek", "custom"}:
+    if api_provider not in {"baomiao", "deepseek"}:
         return "当前仅支持暴喵专属免配通道或 DeepSeek 官方接口"
     if len(api_key) > 512:
         return "API Key 过长"
@@ -187,12 +187,20 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
 
     def _is_local_request(self):
         client_ip = getattr(self, "client_address", [None])[0]
-        if client_ip in ("127.0.0.1", "::1", "localhost"):
-            return True
+        if client_ip not in ("127.0.0.1", "::1", "localhost"):
+            return False
         host = (self.headers.get("Host") or "").lower().split(":")[0]
-        if host in ("127.0.0.1", "localhost"):
-            return True
-        return False
+        if host and host not in ("127.0.0.1", "localhost"):
+            return False
+        origin = self.headers.get("Origin")
+        if origin:
+            try:
+                origin_host = urlparse(origin).hostname
+            except Exception:
+                return False
+            if origin_host not in ("127.0.0.1", "localhost", "::1"):
+                return False
+        return True
 
     def _send_json(self, data, status=200):
         payload = json.dumps(data, ensure_ascii=False).encode("utf-8")

@@ -327,8 +327,6 @@ class ComponentDownloader:
         result = self._run([venv_python, "-m", "astrbot.cli", "init", "--yes"], cwd=target_dir, env=env)
         if result.returncode != 0:
             result = self._run([venv_python, "-m", "astrbot", "init", "--yes"], cwd=target_dir, env=env)
-        self.log(f"✅ AstrBot {ASTRBOT_VERSION} 已安装；管理密码文件: {self._dashboard_password_file()}", 85)
-        return True
         if result.returncode != 0:
             raise RuntimeError(f"初始化 AstrBot 失败: {result.stdout[-800:]}")
         self.log(f"✅ AstrBot {ASTRBOT_VERSION} 已安装；管理密码文件: {self._dashboard_password_file()}", 85)

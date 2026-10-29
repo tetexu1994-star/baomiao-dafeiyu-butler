@@ -5,21 +5,39 @@ let currentConfig = {
   api_key: "",
   api_key_set: false,
   api_base: "https://api.baomiao.com/v1",
-  model_name: "deepseek-chat"
+  model_name: "deepseek-chat",
+  whitelist_only: false
 };
 
 let eventSource = null;
 let currentStep = 1;
+let stoppedByUser = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   loadConfig();
   initEventStream();
   checkServiceStatus();
-  setInterval(checkServiceStatus, 1000);
 });
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchJSON(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, data };
+  } catch (err) {
+    if (err && err.name === "AbortError") {
+      throw new Error("请求超时，请稍后重试");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function loadConfig() {
@@ -38,6 +56,8 @@ async function loadConfig() {
     if (currentConfig.install_dir) {
       document.getElementById("display-install-dir").textContent = currentConfig.install_dir;
     }
+    const wlEl = document.getElementById("whitelist_only");
+    if (wlEl) wlEl.checked = !!currentConfig.whitelist_only;
 
     // 二次启动智能化：如果已有完整配置，自动跳至第 03 步唤醒大肥鱼并启动服务，免去重复点击流程
     if (currentConfig.master_qq && currentConfig.bot_qq && currentConfig.install_dir) {
@@ -100,6 +120,8 @@ async function goToStep(step) {
 
     currentConfig.master_qq = master;
     currentConfig.bot_qq = bot;
+    const wlEl = document.getElementById("whitelist_only");
+    currentConfig.whitelist_only = wlEl ? wlEl.checked : false;
     if (inputKey) {
       currentConfig.api_key = inputKey;
       currentConfig.api_key_set = true;
@@ -207,8 +229,7 @@ function copyText(text) {
 
 async function waitForInstallation() {
   while (true) {
-    const res = await fetch("/api/install/status");
-    const state = await res.json();
+    const { data: state } = await fetchJSON("/api/install/status", {}, 10000);
     updateInstallStatus(state);
     if (state.state === "completed") return;
     if (state.state === "failed") {
@@ -224,13 +245,12 @@ async function startInstallation() {
   document.getElementById("progress-bar").style.width = "5%";
 
   try {
-    const res = await fetch("/api/install", {
+    const { ok, data } = await fetchJSON("/api/install", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{}"
-    });
-    const data = await res.json();
-    if (!res.ok || !data.success) {
+    }, 15000);
+    if (!ok || !data.success) {
       throw new Error(data.message || "无法启动部署任务");
     }
     await waitForInstallation();
@@ -285,6 +305,20 @@ function setLoginSuccessUI() {
   }
 }
 
+function makeLocalQrDataUrl(text) {
+  try {
+    if (typeof qrcode === "function") {
+      const qr = qrcode(0, "M");
+      qr.addData(text);
+      qr.make();
+      return qr.createDataURL(6, 2);
+    }
+  } catch (e) {
+    console.error("本地二维码生成失败:", e);
+  }
+  return "";
+}
+
 function renderQrCode(qrData) {
   const qrImg = document.getElementById("qr-image");
   const placeholder = document.getElementById("qr-placeholder");
@@ -292,7 +326,12 @@ function renderQrCode(qrData) {
   const radarTag = document.querySelector(".qr-radar-tag");
   if (!qrImg || !placeholder) return;
   if (qrData.startsWith("http")) {
-    qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" + encodeURIComponent(qrData);
+    const dataUrl = makeLocalQrDataUrl(qrData);
+    if (!dataUrl) {
+      appendLog("[系统] 本地二维码生成失败，请点击「重新扫码换号」重试。");
+      return;
+    }
+    qrImg.src = dataUrl;
   } else {
     qrImg.src = qrData;
   }
@@ -324,7 +363,7 @@ async function checkServiceStatus() {
       return;
     }
 
-    if (currentStep === 3 && !data.running && !isStartingServices) {
+    if (currentStep === 3 && !data.running && !isStartingServices && !stoppedByUser) {
       startServices();
     }
   } catch (_) {}
@@ -385,16 +424,11 @@ async function relogin() {
     alert("重新登录失败: " + err.message);
   }
 }
-      throw new Error(data.message || "重新启动失败");
-    }
-  } catch (err) {
-    alert("重新登录失败: " + err.message);
-  }
-}
 
 async function startServices() {
   if (isStartingServices) return;
   isStartingServices = true;
+  stoppedByUser = false;
   document.getElementById("service-status").textContent = "正在启动服务…";
   const placeholder = document.getElementById("qr-placeholder");
   if (placeholder) {
@@ -406,13 +440,12 @@ async function startServices() {
   startQrPolling();
 
   try {
-    const res = await fetch("/api/start", {
+    const { ok, data } = await fetchJSON("/api/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{}"
-    });
-    const data = await res.json();
-    if (!res.ok || !data.success) {
+    }, 130000);
+    if (!ok || !data.success) {
       throw new Error(data.message || "服务启动失败");
     }
     document.getElementById("service-status").textContent = "服务运行中";
@@ -432,6 +465,7 @@ async function restartServices() {
 }
 
 async function stopServices() {
+  stoppedByUser = true;
   stopQrPolling();
   try {
     await fetch("/api/stop", {
@@ -500,7 +534,7 @@ async function unbindMaster() {
     const data = await res.json();
     alert(data.message || "已成功解除主人绑定！");
     currentConfig.master_qq = "";
-    const masterInput = document.getElementById("master-qq");
+    const masterInput = document.getElementById("master_qq");
     if (masterInput) masterInput.value = "";
     const dispMaster = document.getElementById("display-master-qq");
     if (dispMaster) dispMaster.textContent = "无（自由模式）";

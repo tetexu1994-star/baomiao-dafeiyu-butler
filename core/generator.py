@@ -132,10 +132,11 @@ def build_astrbot_config(existing, user_config):
     provider_settings["default_personality"] = DAFEIYU_PERSONA_ID
     provider_settings["wake_prefix"] = ""
 
+    whitelist_only = bool(user_config.get("whitelist_only", False))
     platform_settings = config.setdefault("platform_settings", {})
-    # 彻底关闭白名单拦截，确保用户与机器人无论是私聊还是群聊均能立即得到大肥鱼回复
-    platform_settings["enable_id_white_list"] = False
-    platform_settings["id_whitelist"] = []
+    # 白名单模式：开启后仅主人（管理员）可互动，群友/陌生人会被 AstrBot 拦截
+    platform_settings["enable_id_white_list"] = whitelist_only
+    platform_settings["id_whitelist"] = [master_qq] if (whitelist_only and master_qq) else []
     platform_settings["wl_ignore_admin_on_group"] = True
     platform_settings["wl_ignore_admin_on_friend"] = True
     platform_settings["friend_message_needs_wake_prefix"] = False

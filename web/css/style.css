@@ -1224,3 +1224,191 @@ body {
   background: var(--brand-primary);
   color: #0f172a;
 }
+
+/* ==========================================================================
+   6. 二次元增强 / 账号风险提示 / 白名单开关 / 漂浮粒子
+   ========================================================================== */
+
+/* 二次元点缀：应用壳顶部流光 */
+.commercial-app::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #f472b6, #38bdf8, transparent);
+  background-size: 200% 100%;
+  animation: auroraSlide 4s linear infinite;
+  z-index: 2;
+  pointer-events: none;
+}
+
+@keyframes auroraSlide {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* 漂浮二次元粒子 */
+.kawaii-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.kawaii-particles span {
+  position: absolute;
+  bottom: -40px;
+  font-size: 18px;
+  opacity: 0.35;
+  animation: kawaiiFloat 14s linear infinite;
+}
+
+.kawaii-particles span:nth-child(1) { left: 6%;  animation-duration: 13s; animation-delay: 0s;   font-size: 15px; }
+.kawaii-particles span:nth-child(2) { left: 22%; animation-duration: 17s; animation-delay: 2.5s; }
+.kawaii-particles span:nth-child(3) { left: 40%; animation-duration: 15s; animation-delay: 5s;   font-size: 20px; }
+.kawaii-particles span:nth-child(4) { left: 58%; animation-duration: 18s; animation-delay: 1.2s; font-size: 16px; }
+.kawaii-particles span:nth-child(5) { left: 74%; animation-duration: 14s; animation-delay: 7s;   }
+.kawaii-particles span:nth-child(6) { left: 90%; animation-duration: 16s; animation-delay: 3.8s; font-size: 15px; }
+
+@keyframes kawaiiFloat {
+  0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.35; }
+  90%  { opacity: 0.35; }
+  100% { transform: translateY(-110vh) translateX(40px) rotate(360deg); opacity: 0; }
+}
+
+/* 账号风险提示 */
+.risk-notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.risk-notice-icon {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.risk-notice-body strong {
+  display: block;
+  color: #fda4af;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.risk-notice-body p {
+  color: #fecdd3;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* 白名单安全模式开关 */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.toggle-row:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.toggle-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toggle-text strong {
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.toggle-text em {
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-style: normal;
+  line-height: 1.4;
+}
+
+.toggle-row input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-ui {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  background: #2b3560;
+  border-radius: 20px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.toggle-ui::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.toggle-row input[type="checkbox"]:checked + .toggle-ui {
+  background: linear-gradient(135deg, #f472b6, #38bdf8);
+}
+
+.toggle-row input[type="checkbox"]:checked + .toggle-ui::after {
+  transform: translateX(18px);
+}
+
+/* 更二次元的按钮与卡片动效 */
+.btn-brand:hover:not(:disabled),
+.btn-adopt-action:hover {
+  box-shadow: 0 8px 26px rgba(244, 114, 182, 0.45);
+}
+
+.step-chip.active {
+  border-color: rgba(244, 114, 182, 0.5);
+  box-shadow: 0 0 14px rgba(244, 114, 182, 0.2);
+}
+
+.step-chip.active .chip-index {
+  background: linear-gradient(135deg, #f472b6, #38bdf8);
+}
+
+.brand-avatar-box {
+  background: linear-gradient(135deg, #f472b6, #38bdf8);
+  animation: gentleBob 3s ease-in-out infinite;
+}
+
+.adopt-hero-card:hover,
+.adopt-form-card:hover,
+.build-summary-card:hover,
+.activation-steps-card:hover,
+.qr-dock-card:hover {
+  border-color: rgba(244, 114, 182, 0.4);
+  box-shadow: 0 12px 32px rgba(244, 114, 182, 0.15), 0 8px 24px rgba(0, 0, 0, 0.25);
+}

@@ -35,7 +35,6 @@ def load_user_config():
             pass
     if not str(config.get("install_dir", "")).strip():
         config["install_dir"] = DEFAULT_CONFIG["install_dir"]
-    config["whitelist_only"] = False
     return config
 
 

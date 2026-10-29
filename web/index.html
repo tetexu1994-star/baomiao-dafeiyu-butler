@@ -4,12 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>大肥鱼领养舱 · AI 赛博伴侣一键接入</title>
-  <link rel="stylesheet" href="css/style.css?v=3.3">
+  <link rel="stylesheet" href="css/style.css?v=3.4">
   <link rel="icon" type="image/png" href="img/dafeiyu_logo.png">
 </head>
 <body>
   <div class="commercial-app">
-    
+    <div class="kawaii-particles" aria-hidden="true">
+      <span>🍚</span><span>✨</span><span>🐟</span><span>💙</span><span>🌸</span><span>⭐</span>
+    </div>
+
     <!-- 顶栏：大肥鱼领养舱 -->
     <header class="app-header">
       <div class="brand-cluster">
@@ -124,6 +127,15 @@
               <p class="block-hint">稍后用手机登录这个 QQ，它就是大肥鱼的“身体”。</p>
             </div>
 
+            <!-- 账号风险提示 -->
+            <div class="risk-notice">
+              <div class="risk-notice-icon">⚠️</div>
+              <div class="risk-notice-body">
+                <strong>账号风险提示</strong>
+                <p>使用第三方客户端登录 QQ 存在被腾讯判定为异常、导致账号被限制或封禁的风险。请务必使用闲置小号，不要使用常用主号，由此产生的账号风险由使用者自行承担。</p>
+              </div>
+            </div>
+
             <!-- AI 通道 -->
             <div class="form-block">
               <div class="block-label-row">
@@ -168,6 +180,22 @@
               </div>
 
               <p class="block-hint">暴喵请求地址已自动配置；只有接口要求鉴权时才需要填写密钥。</p>
+            </div>
+
+            <!-- 白名单安全模式 -->
+            <div class="form-block">
+              <div class="block-label-row">
+                <label>安全模式</label>
+                <span class="field-badge optional">可选</span>
+              </div>
+              <label class="toggle-row">
+                <span class="toggle-text">
+                  <strong>仅主人可用</strong>
+                  <em>开启后只有主人的 QQ 能与大肥鱼对话，群友与陌生人会被拦截</em>
+                </span>
+                <input type="checkbox" id="whitelist_only">
+                <span class="toggle-ui"></span>
+              </label>
             </div>
 
             <!-- 底部提交按钮 -->
@@ -398,6 +426,7 @@
 
   </div>
 
-  <script src="js/app.js?v=3.2"></script>
+  <script src="js/vendor/qrcode.js"></script>
+  <script src="js/app.js?v=3.3"></script>
 </body>
 </html>
