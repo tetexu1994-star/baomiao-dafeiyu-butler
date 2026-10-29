@@ -23,6 +23,11 @@ if sys.platform.startswith("win"):
             sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("baomiao.dafeiyu.butler.v1")
+    except Exception:
+        pass
 
 # 在 Windows GUI (PyInstaller --windowed) 模式下，stdout 和 stderr 为 None，重定向防止 print 或 log 崩溃
 if sys.stdout is None:
@@ -501,6 +506,38 @@ def main():
                 resizable=True,
                 min_size=(920, 680)
             )
+            def _apply_windows_icon():
+                if not sys.platform.startswith("win"):
+                    return
+                import ctypes
+                candidates = [
+                    os.path.join(getattr(sys, "_MEIPASS", ""), "dafeiyu.ico"),
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)), "dafeiyu.ico"),
+                    os.path.join(getattr(sys, "_MEIPASS", ""), "web", "favicon.ico"),
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "favicon.ico"),
+                ]
+                icon_path = next((p for p in candidates if os.path.isfile(p)), None)
+                if not icon_path:
+                    return
+                for _ in range(40):
+                    time.sleep(0.25)
+                    hwnd = ctypes.windll.user32.FindWindowW(None, "大肥鱼一键接入QQ")
+                    if hwnd:
+                        try:
+                            IMAGE_ICON = 1
+                            LR_LOADFROMFILE = 0x00000010
+                            hicon_big = ctypes.windll.user32.LoadImageW(None, icon_path, IMAGE_ICON, 32, 32, LR_LOADFROMFILE)
+                            hicon_small = ctypes.windll.user32.LoadImageW(None, icon_path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
+                            WM_SETICON = 0x0080
+                            if hicon_big:
+                                ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 1, hicon_big)
+                            if hicon_small:
+                                ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 0, hicon_small)
+                            break
+                        except Exception:
+                            pass
+
+            threading.Thread(target=_apply_windows_icon, daemon=True).start()
             webview.start()
             if process_mgr:
                 process_mgr.stop_all()
