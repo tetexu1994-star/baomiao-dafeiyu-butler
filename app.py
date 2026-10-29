@@ -137,15 +137,18 @@ def on_qr_event(data):
 
 def test_llm_connection(config):
     """实测一次 LLM API 连通性，返回 (ok, message)。"""
+    provider = str(config.get("api_provider", "deepseek")).strip()
     api_base = str(config.get("api_base", "")).strip().rstrip("/")
+    if not api_base:
+        if provider == "baomiao":
+            api_base = "https://open-ai.baomiao.cn/v1"
+        else:
+            api_base = "https://api.deepseek.com/v1"
     api_key = str(config.get("api_key", "")).strip()
     model = str(config.get("model_name", "deepseek-chat")).strip()
-    provider = str(config.get("api_provider", "deepseek")).strip()
 
     if not api_key or api_key == "bm-free-token":
         return False, "未配置有效的 API Key，请填写真实 Key 后重试"
-    if not api_base:
-        return False, "未配置 API 请求地址"
 
     url = f"{api_base}/chat/completions"
     payload = json.dumps({

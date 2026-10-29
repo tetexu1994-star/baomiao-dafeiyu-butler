@@ -3,7 +3,7 @@ import tempfile
 import unittest
 import zipfile
 
-from app import validate_config
+from app import validate_config, test_llm_connection as check_llm_connection
 from core.downloader import ComponentDownloader
 from core.generator import build_astrbot_config, build_napcat_config
 
@@ -72,6 +72,15 @@ class ValidationTests(unittest.TestCase):
         self.assertIn("QQ", validate_config(invalid, require_complete=True))
         unsupported = dict(valid, api_provider="unknown_provider")
         self.assertIn("仅支持", validate_config(unsupported))
+
+    def test_llm_connection_checks_key(self):
+        ok, msg = check_llm_connection({"api_key": ""})
+        self.assertFalse(ok)
+        self.assertIn("有效", msg)
+
+        ok, msg = check_llm_connection({"api_key": "bm-free-token"})
+        self.assertFalse(ok)
+        self.assertIn("有效", msg)
 
 
 if __name__ == "__main__":
