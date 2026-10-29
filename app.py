@@ -11,6 +11,7 @@ import sys
 import threading
 import time
 import urllib.request
+import urllib.error
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -132,6 +133,55 @@ def on_qr_event(data):
         broadcast_event({"type": "login_success"})
     elif data.get("status") == "failed":
         broadcast_event({"type": "service_error", "message": data.get("message", "")})
+
+
+def test_llm_connection(config):
+    """实测一次 LLM API 连通性，返回 (ok, message)。"""
+    api_base = str(config.get("api_base", "")).strip().rstrip("/")
+    api_key = str(config.get("api_key", "")).strip()
+    model = str(config.get("model_name", "deepseek-chat")).strip()
+    provider = str(config.get("api_provider", "deepseek")).strip()
+
+    if not api_key or api_key == "bm-free-token":
+        return False, "未配置有效的 API Key，请填写真实 Key 后重试"
+    if not api_base:
+        return False, "未配置 API 请求地址"
+
+    url = f"{api_base}/chat/completions"
+    payload = json.dumps({
+        "model": model,
+        "messages": [{"role": "user", "content": "你好"}],
+        "max_tokens": 8,
+        "stream": False,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+            "User-Agent": "BaomiaoButler/1.3",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="ignore"))
+            choices = data.get("choices") or []
+            return True, f"LLM API 连通正常（{provider} / {model}）"
+    except urllib.error.HTTPError as e:
+        detail = ""
+        try:
+            detail = e.read().decode("utf-8", errors="ignore")[:300]
+        except Exception:
+            pass
+        if e.code in (401, 403):
+            return False, f"LLM API 鉴权失败（HTTP {e.code}），请检查 API Key"
+        if e.code == 404:
+            return False, f"LLM API 接口不存在（HTTP 404），请检查 API 请求地址：{api_base}"
+        return False, f"LLM API 返回 HTTP {e.code}：{detail}"
+    except Exception as e:
+        return False, f"LLM API 请求失败：{e}"
 
 
 def validate_config(data, require_complete=False):
@@ -381,6 +431,11 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
                         qr_callback=on_qr_event,
                     )
                 ok = process_mgr.start_all(bot_qq=config_snapshot.get("bot_qq", ""))
+                if ok:
+                    def _run_llm_test(snapshot):
+                        llm_ok, llm_msg = test_llm_connection(snapshot)
+                        broadcast_event({"type": "llm_test", "success": llm_ok, "message": llm_msg})
+                    threading.Thread(target=_run_llm_test, args=(config_snapshot,), daemon=True).start()
                 self._send_json({"success": ok, "message": "" if ok else "服务启动失败，请查看日志"})
             except Exception as exc:
                 self._send_json({"success": False, "message": str(exc)}, 400)

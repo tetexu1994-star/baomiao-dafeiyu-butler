@@ -64,7 +64,7 @@ class ValidationTests(unittest.TestCase):
             "bot_qq": "87654321",
             "api_provider": "baomiao",
             "api_key": "sk-baomiao-test",
-            "api_base": "https://api.baomiao.com/v1",
+            "api_base": "https://open-ai.baomiao.cn/v1",
             "model_name": "deepseek-chat",
         }
         self.assertEqual(validate_config(valid, require_complete=True), "")

@@ -4,7 +4,7 @@ let currentConfig = {
   api_provider: "baomiao",
   api_key: "",
   api_key_set: false,
-  api_base: "https://api.baomiao.com/v1",
+  api_base: "https://open-ai.baomiao.cn/v1",
   model_name: "deepseek-chat",
   whitelist_only: false
 };
@@ -147,7 +147,7 @@ function selectProvider(provider) {
   const baomiaoKeyHint = document.getElementById("baomiao-key-hint");
   
   if (provider === "baomiao") {
-    currentConfig.api_base = "https://api.baomiao.com/v1";
+    currentConfig.api_base = "https://open-ai.baomiao.cn/v1";
     if (baomiaoContainer) baomiaoContainer.style.display = "block";
     if (deepseekContainer) deepseekContainer.style.display = "none";
     if (baomiaoKeyHint) baomiaoKeyHint.style.display = "flex";
@@ -575,6 +575,12 @@ function initEventStream() {
         const statusEl = document.getElementById("service-status");
         if (statusEl) statusEl.textContent = "启动异常";
         appendLog("[系统] 服务启动异常: " + (payload.message || ""));
+      } else if (payload.type === "llm_test") {
+        if (payload.success) {
+          appendLog("✅ [系统] " + (payload.message || "LLM API 连通正常"));
+        } else {
+          appendLog("❌ [系统] " + (payload.message || "LLM API 检测失败"));
+        }
       }
     } catch (err) {
       console.error(err);

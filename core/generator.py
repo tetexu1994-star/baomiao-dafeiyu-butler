@@ -87,7 +87,7 @@ def build_astrbot_config(existing, user_config):
     onebot_port = int(user_config.get("napcat_port", 6199))
 
     if api_provider == "baomiao":
-        api_base = str(user_config.get("api_base") or "https://api.baomiao.com/v1").strip()
+        api_base = str(user_config.get("api_base") or "https://open-ai.baomiao.cn/v1").strip()
         if not api_key:
             raise ValueError("请填入暴喵专属 API Key（若未持有，可点击下方按钮下载暴喵AI管家免费领取）")
     elif api_provider == "deepseek":
