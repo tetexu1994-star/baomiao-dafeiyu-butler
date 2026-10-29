@@ -3,7 +3,7 @@ import tempfile
 import unittest
 import zipfile
 
-from app import validate_config, test_llm_connection as check_llm_connection
+from app import validate_config, test_llm_connection as check_llm_connection, pick_best_model, fetch_available_models
 from core.downloader import ComponentDownloader
 from core.generator import build_astrbot_config, build_napcat_config
 
@@ -81,6 +81,20 @@ class ValidationTests(unittest.TestCase):
         ok, msg = check_llm_connection({"api_key": "bm-free-token"})
         self.assertFalse(ok)
         self.assertIn("有效", msg)
+
+
+    def test_pick_best_model(self):
+        models = [
+            {"id": "deepseek-v4-pro", "name": "DeepSeek-V4-Pro"},
+            {"id": "deepseek-flash", "name": "DeepSeek-V4.1-Flash"},
+        ]
+        self.assertEqual(pick_best_model(models), "deepseek-flash")
+        self.assertEqual(pick_best_model(models, preferred="deepseek-v4-pro"), "deepseek-v4-pro")
+
+    def test_fetch_available_models_fallback(self):
+        models = fetch_available_models("", "")
+        self.assertTrue(len(models) >= 1)
+        self.assertEqual(models[0]["id"], "deepseek-flash")
 
 
 if __name__ == "__main__":

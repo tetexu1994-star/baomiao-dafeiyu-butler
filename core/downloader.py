@@ -472,6 +472,19 @@ class ComponentDownloader:
 
         result = self._run([venv_python, "-c", "import astrbot"])
         if result.returncode != 0:
+            # 校验 pip 是否就绪，若缺失自动修复或重置虚拟环境
+            pip_test = self._run([venv_python, "-m", "pip", "--version"])
+            if pip_test.returncode != 0:
+                self.log("正在补全基础包管理组件 (pip)...", 52)
+                self._run([venv_python, "-m", "ensurepip", "--default-pip"])
+                if self._run([venv_python, "-m", "pip", "--version"]).returncode != 0:
+                    self.log("⚠️ 检测到损坏的虚拟环境，正在清空并重构...", 50)
+                    shutil.rmtree(venv_dir, ignore_errors=True)
+                    python_command = self.ensure_python_environment()
+                    self._run([*python_command, "-m", "venv", venv_dir])
+                    venv_python = self._venv_python(venv_dir)
+                    self._run([venv_python, "-m", "ensurepip", "--default-pip"])
+
             pip_mirrors = [
                 ("清华大学开源镜像", "https://pypi.tuna.tsinghua.edu.cn/simple", "pypi.tuna.tsinghua.edu.cn"),
                 ("阿里云开源镜像", "https://mirrors.aliyun.com/pypi/simple/", "mirrors.aliyun.com"),
@@ -487,8 +500,9 @@ class ComponentDownloader:
                 ]
                 res = self._run(cmd)
                 if res.returncode == 0:
-                    install_success = True
-                    break
+                    if self._run([venv_python, "-c", "import astrbot"]).returncode == 0:
+                        install_success = True
+                        break
                 self.log(f"【{label}】安装遇到网络波动，正在切换备用源...")
             if not install_success:
                 raise RuntimeError(f"安装 AstrBot 核心引擎失败，请检查网络连接")

@@ -237,22 +237,23 @@
               </p>
             </div>
 
-            <!-- AI 模型设置 -->
+            <!-- AI 模型选择 -->
             <div class="form-block">
               <div class="block-label-row">
-                <label for="model_name">AI 模型名称</label>
-                <span class="field-badge optional">已适配 Flash</span>
+                <label for="model_select">已授权可用模型</label>
+                <span class="field-badge" id="model_status_badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3);">⚡ 自动拉取</span>
               </div>
-              <div class="input-glow-box">
-                <input type="text" id="model_name" placeholder="请输入模型名称，如 deepseek-flash" autocomplete="off">
+              <div class="input-glow-box model-select-box">
+                <select id="model_select" class="model-dropdown-select" onchange="onModelSelectChanged(this.value)">
+                  <option value="deepseek-flash" selected>DeepSeek-V4.1-Flash (推荐·极速)</option>
+                  <option value="deepseek-v4-pro">DeepSeek-V4-Pro (强力推荐)</option>
+                </select>
+                <button type="button" class="btn-refresh-models" id="btn-refresh-models" onclick="fetchModelsFromApi(true)" title="重新拉取模型列表">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
               </div>
-              <div class="model-quick-tags" id="model-quick-tags">
-                <span class="model-tag active" data-model="deepseek-flash" onclick="selectModelTag('deepseek-flash')">⚡ deepseek-flash (推荐)</span>
-                <span class="model-tag" data-model="DeepSeek-V4.1-Flash 1017(1.20x)" onclick="selectModelTag('DeepSeek-V4.1-Flash 1017(1.20x)')">🚀 Flash 1017</span>
-                <span class="model-tag" data-model="DeepSeek-V4.1-Flash" onclick="selectModelTag('DeepSeek-V4.1-Flash')">✨ V4.1-Flash</span>
-                <span class="model-tag" data-model="deepseek-chat" onclick="selectModelTag('deepseek-chat')">🌐 deepseek-chat</span>
-              </div>
-              <p class="block-hint">默认已为您配置 <strong>deepseek-flash</strong>。点击标签切换，或直接在框内自定义修改。</p>
+              <input type="hidden" id="model_name" value="deepseek-flash">
+              <p class="block-hint" id="model-fetch-hint">已根据您的 API Key 自动拉取确定可用的已授权模型，直接选用即可，无需繁琐输入。</p>
             </div>
 
             <!-- 白名单安全模式 -->

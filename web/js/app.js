@@ -13,15 +13,27 @@ let eventSource = null;
 let currentStep = 1;
 let stoppedByUser = false;
 
+let fetchModelsTimer = null;
+function debouncedFetchModels() {
+  clearTimeout(fetchModelsTimer);
+  fetchModelsTimer = setTimeout(() => {
+    fetchModelsFromApi();
+  }, 600);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   loadConfig();
   initEventStream();
   checkServiceStatus();
-  const modelInput = document.getElementById("model_name");
-  if (modelInput) {
-    modelInput.addEventListener("input", (e) => {
-      updateModelTagActive(e.target.value.trim());
-    });
+  const dsKey = document.getElementById("api_key");
+  if (dsKey) {
+    dsKey.addEventListener("input", debouncedFetchModels);
+    dsKey.addEventListener("blur", () => fetchModelsFromApi());
+  }
+  const bmKey = document.getElementById("baomiao_api_key");
+  if (bmKey) {
+    bmKey.addEventListener("input", debouncedFetchModels);
+    bmKey.addEventListener("blur", () => fetchModelsFromApi());
   }
 });
 
@@ -126,11 +138,15 @@ async function loadConfig() {
     const wlEl = document.getElementById("whitelist_only");
     if (wlEl) wlEl.checked = !!currentConfig.whitelist_only;
 
+    const modelSelect = document.getElementById("model_select");
     const modelInput = document.getElementById("model_name");
     if (modelInput) {
       modelInput.value = currentConfig.model_name || "deepseek-flash";
-      updateModelTagActive(modelInput.value);
     }
+    if (modelSelect && currentConfig.model_name) {
+      modelSelect.value = currentConfig.model_name;
+    }
+    fetchModelsFromApi();
 
     // 二次启动智能化：如果已有完整配置，自动跳至第 03 步唤醒大肥鱼并启动服务，免去重复点击流程
     if (currentConfig.master_qq && currentConfig.bot_qq && currentConfig.install_dir) {
@@ -169,21 +185,86 @@ function selectProvider(provider) {
     if (deepseekContainer) deepseekContainer.style.display = "block";
     if (baomiaoKeyHint) baomiaoKeyHint.style.display = "none";
   }
+  fetchModelsFromApi();
 }
 
-function selectModelTag(modelName) {
-  const modelInput = document.getElementById("model_name");
-  if (modelInput) {
-    modelInput.value = modelName;
+async function fetchModelsFromApi(force = false) {
+  const badge = document.getElementById("model_status_badge");
+  const select = document.getElementById("model_select");
+  const hint = document.getElementById("model-fetch-hint");
+  if (!select) return;
+
+  const inputKey = getApiKeyInputValue();
+  const apiKey = inputKey || currentConfig.api_key || "";
+  const apiBase = currentConfig.api_base || "https://api.deepseek.com/v1";
+
+  if (badge) {
+    badge.textContent = "⏳ 正在拉取可用模型...";
+    badge.style.background = "rgba(59, 130, 246, 0.15)";
+    badge.style.color = "#60a5fa";
   }
-  currentConfig.model_name = modelName;
-  updateModelTagActive(modelName);
+
+  try {
+    const res = await fetch("/api/fetch_models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_base: apiBase, api_key: apiKey }),
+    });
+    const data = await res.json();
+    if (data.success && data.models && data.models.length > 0) {
+      select.innerHTML = "";
+      data.models.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        let displayName = m.name || m.id;
+        if (m.id === "deepseek-flash" || m.id.toLowerCase().includes("flash")) {
+          displayName += " (推荐·极速)";
+        } else if (m.id.toLowerCase().includes("pro")) {
+          displayName += " (强力推荐)";
+        }
+        opt.textContent = displayName;
+        select.appendChild(opt);
+      });
+
+      // 选定模型
+      let target = currentConfig.model_name || data.selected || data.models[0].id;
+      const exists = Array.from(select.options).some(o => o.value === target);
+      if (exists) {
+        select.value = target;
+      } else if (data.selected) {
+        select.value = data.selected;
+      } else {
+        select.selectedIndex = 0;
+      }
+
+      currentConfig.model_name = select.value;
+      const modelInput = document.getElementById("model_name");
+      if (modelInput) modelInput.value = select.value;
+
+      if (badge) {
+        badge.textContent = `✅ 已授权 (${data.models.length}个)`;
+        badge.style.background = "rgba(16, 185, 129, 0.15)";
+        badge.style.color = "#34d399";
+        badge.style.borderColor = "rgba(16, 185, 129, 0.3)";
+      }
+      if (hint) {
+        hint.innerHTML = `已从您的密钥中拉取到 <strong>${data.models.length}</strong> 个确定可用模型，已锁定为您直接选用。`;
+      }
+    }
+  } catch (err) {
+    console.warn("拉取模型列表失败:", err);
+    if (badge) {
+      badge.textContent = "⚡ 默认模型";
+      badge.style.background = "rgba(16, 185, 129, 0.15)";
+      badge.style.color = "#34d399";
+    }
+  }
 }
 
-function updateModelTagActive(modelName) {
-  document.querySelectorAll(".model-tag").forEach(tag => {
-    tag.classList.toggle("active", tag.getAttribute("data-model") === modelName);
-  });
+function onModelSelectChanged(val) {
+  currentConfig.model_name = val;
+  const modelInput = document.getElementById("model_name");
+  if (modelInput) modelInput.value = val;
 }
 
 async function goToStep(step) {
@@ -220,8 +301,11 @@ async function goToStep(step) {
     const wlEl = document.getElementById("whitelist_only");
     currentConfig.whitelist_only = wlEl ? wlEl.checked : false;
 
+    const modelSelect = document.getElementById("model_select");
     const modelInput = document.getElementById("model_name");
-    if (modelInput && modelInput.value.trim()) {
+    if (modelSelect && modelSelect.value) {
+      currentConfig.model_name = modelSelect.value.trim();
+    } else if (modelInput && modelInput.value.trim()) {
       currentConfig.model_name = modelInput.value.trim();
     }
     if (inputKey) {

@@ -187,6 +187,65 @@ def test_llm_connection(config):
         return False, f"LLM API 请求失败：{e}"
 
 
+def fetch_available_models(api_base, api_key):
+    """通过 API Key 从 upstream 真实拉取确定可用的模型列表"""
+    api_base = str(api_base or "").strip().rstrip("/")
+    api_key = str(api_key or "").strip()
+    fallback = [
+        {"id": "deepseek-flash", "name": "DeepSeek-V4.1-Flash"},
+        {"id": "deepseek-v4-pro", "name": "DeepSeek-V4-Pro"},
+    ]
+    if not api_base or not api_key:
+        return fallback
+
+    url = f"{api_base}/models"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "User-Agent": "BaomiaoButler/1.3",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="ignore"))
+            raw_models = data.get("data") or []
+            models = []
+            seen = set()
+            for item in raw_models:
+                if isinstance(item, dict) and "id" in item:
+                    mid = str(item["id"]).strip()
+                    mname = str(item.get("name") or mid).strip()
+                    if mid and mid not in seen:
+                        seen.add(mid)
+                        models.append({"id": mid, "name": mname})
+                elif isinstance(item, str):
+                    mid = item.strip()
+                    if mid and mid not in seen:
+                        seen.add(mid)
+                        models.append({"id": mid, "name": mid})
+            return models if models else fallback
+    except Exception:
+        return fallback
+
+
+def pick_best_model(models, preferred="deepseek-flash"):
+    if not models:
+        return preferred
+    model_ids = [m["id"] if isinstance(m, dict) else str(m) for m in models]
+    for mid in model_ids:
+        if mid.lower() == preferred.lower():
+            return mid
+    for mid in model_ids:
+        if "flash" in mid.lower():
+            return mid
+    for mid in model_ids:
+        if "deepseek" in mid.lower():
+            return mid
+    return model_ids[0]
+
+
 def validate_config(data, require_complete=False):
     if not isinstance(data, dict):
         return "配置格式错误"
@@ -343,6 +402,17 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
                 pass
             finally:
                 event_broker.unsubscribe(subscriber)
+        elif parsed.path == "/api/fetch_models":
+            query = parse_qs(parsed.query)
+            with config_lock:
+                cfg_base = user_config.get("api_base", "")
+                cfg_key = user_config.get("api_key", "")
+                current_model = user_config.get("model_name") or "deepseek-flash"
+            api_base = query.get("api_base", [cfg_base])[0]
+            api_key = query.get("api_key", [cfg_key])[0]
+            models = fetch_available_models(api_base, api_key)
+            selected = current_model if any(m["id"] == current_model for m in models) else pick_best_model(models)
+            self._send_json({"success": True, "models": models, "selected": selected})
         elif parsed.path.startswith("/api/"):
             self._send_json({"success": False, "message": "接口不存在"}, 404)
         else:
@@ -519,6 +589,17 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
                 self._send_json({"success": ok, "message": "" if ok else "重新启动失败", "bot_qq": config_snapshot.get("bot_qq", "")})
             except Exception as exc:
                 self._send_json({"success": False, "message": str(exc)}, 400)
+
+        elif parsed.path == "/api/fetch_models":
+            with config_lock:
+                cfg_base = user_config.get("api_base", "")
+                cfg_key = user_config.get("api_key", "")
+                current_model = user_config.get("model_name") or "deepseek-flash"
+            api_base = body.get("api_base") or cfg_base or "https://api.deepseek.com/v1"
+            api_key = body.get("api_key") or cfg_key or ""
+            models = fetch_available_models(api_base, api_key)
+            selected = current_model if any(m["id"] == current_model for m in models) else pick_best_model(models)
+            self._send_json({"success": True, "models": models, "selected": selected})
 
         else:
             self._send_json({"success": False, "message": "接口不存在"}, 404)
