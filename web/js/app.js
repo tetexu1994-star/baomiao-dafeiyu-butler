@@ -253,15 +253,15 @@ function setLoginSuccessUI() {
     placeholder.style.display = "flex";
     placeholder.style.flexDirection = "column";
     placeholder.style.alignItems = "center";
+    placeholder.style.justifyContent = "center";
     placeholder.style.padding = "10px";
     placeholder.innerHTML = `
-      <div class="active-mascot-wrapper" style="position: relative; width: 130px; height: 145px; margin: 0 auto 8px auto;">
-        <img src="img/dafeiyu_chibi.png" alt="暴喵大肥鱼" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(56, 189, 248, 0.45));">
-        <span style="position: absolute; bottom: 6px; right: 14px; width: 14px; height: 14px; background: #10b981; border: 2.5px solid #0f172a; border-radius: 50%; box-shadow: 0 0 8px #10b981;"></span>
+      <div class="active-mascot-wrapper" style="position: relative; width: 140px; height: 160px; margin: 0 auto 10px auto;">
+        <img src="img/dafeiyu_chibi.png" alt="暴喵大肥鱼" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(56, 189, 248, 0.45));">
+        <span style="position: absolute; bottom: 8px; right: 16px; width: 14px; height: 14px; background: #10b981; border: 2.5px solid #0f172a; border-radius: 50%; box-shadow: 0 0 10px #10b981;"></span>
       </div>
       <p style="color: #38bdf8; font-weight: bold; font-size: 16px; margin: 0 0 4px 0; text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);">大肥鱼已激活 · 在线中</p>
-      <p style="color: #94a3b8; font-size: 12px; margin: 0 0 10px 0; line-height: 1.4;">免扫码自动上线 · 随时对话互动</p>
-      <button class="btn btn-primary" style="font-size: 12px; padding: 6px 14px; border-radius: 20px; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4); font-weight: bold;" onclick="launchDesktopPet()">🐾 唤起桌面萌宠伴侣</button>
+      <p style="color: #94a3b8; font-size: 12.5px; margin: 0; line-height: 1.4;">免扫码自动上线 · 随时在 QQ 发消息对话</p>
     `;
   }
   if (qrImg) qrImg.style.display = "none";
