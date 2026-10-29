@@ -359,10 +359,19 @@ class ProcessManager:
     def _stream_output(self, tag, proc):
         if not proc.stdout:
             return
+        _reconnect_hint_sent = False
         for line in iter(proc.stdout.readline, ""):
             if not line:
                 break
             clean_line = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", line).strip()
+            if not clean_line:
+                continue
+            # NapCat 先于 AstrBot 启动时，连 OneBot 端口会短暂 CONNREFUSED，属正常启动过程（会自动重连），过滤噪音
+            if tag == "NapCat" and self._is_expected_reconnect_noise(clean_line):
+                if not _reconnect_hint_sent:
+                    self.log("NapCat", "正在等待 AstrBot 的 OneBot 端口就绪（正常启动过程，会自动重连）...")
+                    _reconnect_hint_sent = True
+                continue
             self.log(tag, clean_line)
             success_keywords = (
                 "扫码成功", "登录成功", "快速登录", "Quick Login",
@@ -381,6 +390,14 @@ class ProcessManager:
                         self.last_qr = word
                         if self.qr_callback:
                             self.qr_callback({"type": "url", "data": word})
+
+    @staticmethod
+    def _is_expected_reconnect_noise(line):
+        markers = (
+            "CONNREFUSED", "ECONNREFUSED", "TCPConnectWrap", "afterConnect",
+            "连接错误", "重新连接",
+        )
+        return any(m in line for m in markers)
 
     @staticmethod
     def _wait_for_port(port, timeout=60):
