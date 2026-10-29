@@ -178,6 +178,7 @@ class ComponentDownloader:
 
         if sys.platform.startswith("win"):
             win_candidates = [
+                os.path.join(self.install_dir, "python", "python.exe"),
                 r"C:\Users\qeeyou\Python312\python.exe",
                 os.path.expandvars(r"%USERPROFILE%\Python312\python.exe"),
                 os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python312\python.exe"),
@@ -189,7 +190,7 @@ class ComponentDownloader:
                 if os.path.isfile(p):
                     try:
                         res = subprocess.run(
-                            [p, "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)"],
+                            [p, "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"],
                             capture_output=True,
                             timeout=5
                         )
@@ -199,7 +200,7 @@ class ComponentDownloader:
                         pass
 
             if shutil.which("py"):
-                for ver in ("-3.13", "-3.12", "-3.11", "-3.10"):
+                for ver in ("-3.13", "-3.12"):
                     try:
                         res = subprocess.run(
                             ["py", ver, "-c", "import sys; print(sys.version_info[:2])"],
@@ -211,12 +212,12 @@ class ComponentDownloader:
                             return ["py", ver]
                     except Exception:
                         pass
-            for candidate in ("python3.12", "python3.13", "python3.11", "python3.10", "python", "python3"):
+            for candidate in ("python3.12", "python3.13", "python", "python3"):
                 path = shutil.which(candidate)
                 if path:
                     try:
                         res = subprocess.run(
-                            [path, "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)"],
+                            [path, "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"],
                             timeout=5
                         )
                         if res.returncode == 0:
@@ -224,22 +225,22 @@ class ComponentDownloader:
                     except Exception:
                         pass
             return None
-        if sys.version_info >= (3, 10) and not getattr(sys, "frozen", False):
+        if sys.version_info >= (3, 12) and not getattr(sys, "frozen", False):
             return [sys.executable]
-        for candidate in ("python3.12", "python3.11", "python3.10", "python3", "python"):
+        for candidate in ("python3.12", "python3.13", "python3", "python"):
             path = shutil.which(candidate)
             if path:
                 return [path]
-        return None
+            return None
 
     def ensure_python_environment(self):
-        # 1. 优先检查现存的有效 Python 3.10+
+        # 1. 优先检查现存的有效 Python 3.12+
         py_cmd = self._python_command()
         if py_cmd:
             return py_cmd
 
         if not sys.platform.startswith("win"):
-            raise RuntimeError("未检测到 Python 3.10+ 环境，请先安装 Python 3.10+")
+            raise RuntimeError("未检测到 Python 3.12+ 环境，请先安装 Python 3.12+")
 
         self.log("🚀 检测到本机尚未安装 Python，正在全自动下载部署专属 Python 3.12 引擎...", 20)
 
@@ -378,6 +379,13 @@ class ComponentDownloader:
         venv_dir = os.path.join(target_dir, ".venv")
         venv_python = self._venv_python(venv_dir)
 
+        if os.path.exists(venv_python):
+            # 校验现有虚拟环境是否满足 Python >= 3.12（AstrBot 4.29.3 强制要求 >= 3.12）
+            ver_check = self._run([venv_python, "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"])
+            if ver_check.returncode != 0:
+                self.log("⚠️ 检测到旧版 Python 虚拟环境 (< 3.12)，正在升级重构为 Python 3.12 专属环境...", 48)
+                shutil.rmtree(venv_dir, ignore_errors=True)
+
         if not os.path.exists(venv_python):
             # 检查是否有本地内置 AstrBot 运行环境 (方案一：内置免下载)
             bundle_astrbot_zip = self._find_bundled_file("AstrBot.zip")
@@ -390,7 +398,7 @@ class ComponentDownloader:
                 shutil.copytree(bundle_astrbot_dir, target_dir, dirs_exist_ok=True)
             else:
                 python_command = self.ensure_python_environment()
-                self.log("正在创建 AstrBot 隔离虚拟环境...", 50)
+                self.log("正在创建 AstrBot 隔离虚拟环境 (Python 3.12)...", 50)
                 result = self._run([*python_command, "-m", "venv", venv_dir])
                 if result.returncode != 0:
                     raise RuntimeError(f"创建 Python 环境失败: {result.stdout[-800:]}")
