@@ -228,6 +228,16 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
         elif parsed.path == "/api/qrcode":
             qr_data = process_mgr.last_qr if process_mgr else None
             self._send_json({"success": bool(qr_data), "data": qr_data or ""})
+        elif parsed.path == "/api/service/status":
+            is_connected = bool(process_mgr and (process_mgr.is_logged_in or process_mgr.is_onebot_connected()))
+            has_qr = bool(process_mgr and process_mgr.last_qr)
+            self._send_json({
+                "success": True,
+                "running": process_mgr.is_running if process_mgr else False,
+                "is_logged_in": is_connected,
+                "has_qr": has_qr,
+                "qr_data": process_mgr.last_qr if process_mgr else "",
+            })
         elif parsed.path == "/api/events":
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream; charset=utf-8")
@@ -347,6 +357,33 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
             if process_mgr:
                 process_mgr.stop_all()
             self._send_json({"success": True})
+
+        elif parsed.path == "/api/relogin":
+            with config_lock:
+                config_snapshot = dict(user_config)
+            error = validate_config(config_snapshot, require_complete=True)
+            if error:
+                self._send_json({"success": False, "message": error}, 400)
+                return
+            install_dir = config_snapshot["install_dir"]
+            try:
+                generate_astrbot_config(install_dir, config_snapshot)
+                generate_napcat_config(install_dir, config_snapshot)
+                if process_mgr:
+                    process_mgr.stop_all()
+                    process_mgr.clean_session()
+                else:
+                    process_mgr = ProcessManager(
+                        install_dir,
+                        onebot_port=int(config_snapshot.get("napcat_port", 6199)),
+                        log_callback=on_process_log,
+                        qr_callback=on_qr_event,
+                    )
+                    process_mgr.clean_session()
+                ok = process_mgr.start_all(bot_qq=config_snapshot.get("bot_qq", ""))
+                self._send_json({"success": ok, "message": "" if ok else "重新启动失败"})
+            except Exception as exc:
+                self._send_json({"success": False, "message": str(exc)}, 400)
 
         else:
             self._send_json({"success": False, "message": "接口不存在"}, 404)

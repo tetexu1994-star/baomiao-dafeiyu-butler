@@ -24,6 +24,19 @@ class ProcessManager:
         self._lock = threading.RLock()
         self._qr_thread = None
         self.last_qr = None
+        self.is_logged_in = False
+
+    def is_onebot_connected(self):
+        """检查 NapCat 与 AstrBot 之间的 OneBot 11 反向 WebSocket 是否处于已连接状态"""
+        try:
+            out = subprocess.check_output(["netstat", "-ano"], errors="ignore")
+            target_port = f":{self.onebot_port}"
+            for line in out.splitlines():
+                if target_port in line and "ESTABLISHED" in line:
+                    return True
+        except Exception:
+            pass
+        return False
 
     def log(self, tag, text):
         if self.log_callback:
@@ -56,10 +69,32 @@ class ProcessManager:
             except OSError:
                 pass
 
+    def clean_session(self):
+        """清理 NapCat 登录凭证与缓存，强制下次必须重新扫码"""
+        napcat_dir = os.path.join(self.install_dir, "NapCat")
+        self._clean_old_qr()
+        for cdir in (
+            os.path.join(napcat_dir, "napcat", "cache"),
+            os.path.join(napcat_dir, "cache"),
+        ):
+            if os.path.isdir(cdir):
+                try:
+                    shutil.rmtree(cdir, ignore_errors=True)
+                except Exception:
+                    pass
+
     def check_qr_file(self):
         napcat_dir = os.path.join(self.install_dir, "NapCat")
         last_mtimes = {}
         while self.is_running:
+            # 优先检查连接状态：若 NapCat 已经自动快速登录并与 AstrBot 建立了 OneBot 连接，直接触发登录成功
+            if self.is_onebot_connected():
+                if not self.is_logged_in:
+                    self.is_logged_in = True
+                    if self.qr_callback:
+                        self.qr_callback({"type": "status", "status": "success", "message": "大肥鱼已在线（自动快速登录成功）！"})
+                time.sleep(1.5)
+                continue
             candidate_paths = [
                 os.path.join(napcat_dir, "napcat", "cache", "qrcode.png"),
                 os.path.join(napcat_dir, "cache", "qrcode.png"),
@@ -232,9 +267,16 @@ class ProcessManager:
                 break
             clean_line = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", line).strip()
             self.log(tag, clean_line)
-            if any(kw in clean_line for kw in ("扫码成功", "登录成功", "Login successful", "login success")):
+            success_keywords = (
+                "扫码成功", "登录成功", "快速登录", "Quick Login",
+                "Login successful", "login success", "已登录",
+                "自动登录", "OneBot11 适配器初始化完成",
+                "aiocqhttp(OneBot v11) 适配器已连接",
+            )
+            if any(kw in clean_line for kw in success_keywords):
+                self.is_logged_in = True
                 if self.qr_callback:
-                    self.qr_callback({"type": "status", "status": "success", "message": "登录成功！大肥鱼已激活！"})
+                    self.qr_callback({"type": "status", "status": "success", "message": "大肥鱼已激活·在线中！"})
             elif "https://qm.qq.com" in clean_line or "https://ssl.ptlogin2.qq.com" in clean_line:
                 for word in clean_line.split():
                     if word.startswith("http"):
@@ -312,4 +354,5 @@ class ProcessManager:
             self.napcat_proc = None
             self.astrbot_proc = None
             self.last_qr = None
+            self.is_logged_in = False
         self.log("System", "所有服务已停止。")

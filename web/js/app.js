@@ -251,22 +251,56 @@ function startQrPolling() {
   stopQrPolling();
   qrPollingTimer = setInterval(async () => {
     try {
-      const res = await fetch("/api/qrcode");
+      const res = await fetch("/api/service/status");
       if (res.ok) {
         const data = await res.json();
-        if (data.success && data.data) {
-          renderQrCode(data.data);
-          stopQrPolling();
+        if (data.success) {
+          if (data.is_logged_in) {
+            stopQrPolling();
+            document.getElementById("qr-placeholder").style.display = "none";
+            document.getElementById("qr-image").style.display = "none";
+            document.getElementById("success-banner").style.display = "block";
+            document.getElementById("service-status").textContent = "大肥鱼已激活·在线中";
+            appendLog("[系统] 校验到大肥鱼已在后台自动上线，免去重复扫码！");
+            return;
+          }
+          if (data.has_qr && data.qr_data) {
+            renderQrCode(data.qr_data);
+            stopQrPolling();
+          }
         }
       }
     } catch (_) {}
-  }, 1500);
+  }, 1200);
 }
 
 function stopQrPolling() {
   if (qrPollingTimer) {
     clearInterval(qrPollingTimer);
     qrPollingTimer = null;
+  }
+}
+
+async function relogin() {
+  if (!confirm("确定要退出当前 QQ 账号并重新扫码吗？")) return;
+  document.getElementById("service-status").textContent = "正在清理凭证…";
+  document.getElementById("success-banner").style.display = "none";
+  document.getElementById("qr-image").style.display = "none";
+  document.getElementById("qr-placeholder").style.display = "flex";
+  document.getElementById("qr-placeholder").innerHTML = '<div class="scan-spinner"></div><p>正在生成全新登录二维码...</p>';
+  startQrPolling();
+  try {
+    const res = await fetch("/api/relogin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || "重新启动失败");
+    }
+  } catch (err) {
+    alert("重新登录失败: " + err.message);
   }
 }
 
