@@ -570,3 +570,32 @@ async function launchDesktopPet() {
     alert("唤起桌面萌宠失败: " + err.message);
   }
 }
+
+// 二次元看板立绘台词互动系统
+const mascotQuotes = [
+  "主人～快带大肥鱼回家！每天喂一碗大白饭就好啦～🍚✨",
+  "好饿好饿……主人什么时候开饭呀？大肥鱼要吃大白饭！🍚",
+  "变大还是变小？今天听主人的！随时可以用口令唤醒我哦～(๑•̀ㅂ•́)و✧",
+  "哼，大肥鱼才不是因为想吃白饭才认你做主人的呢！(傲娇脸红)",
+  "遇到难题直接喊【暴走⚡】，大肥鱼秒变最强推理军师！⚡",
+  "戳我干嘛呀～呆毛都被主人戳歪啦！(⁄ ⁄>⁄ω⁄<⁄ ⁄)💙",
+  "准备好两个 QQ，马上就能把大肥鱼接进 QQ 群玩耍啦～🌸"
+];
+let currentQuoteIdx = 0;
+
+function speakRandomMascotQuote() {
+  currentQuoteIdx = (currentQuoteIdx + 1) % mascotQuotes.length;
+  const bubble = document.getElementById("bubble-text");
+  if (bubble) {
+    bubble.style.opacity = "0";
+    setTimeout(() => {
+      bubble.textContent = `「${mascotQuotes[currentQuoteIdx]}」`;
+      bubble.style.opacity = "1";
+    }, 150);
+  }
+}
+
+// 自动闲置台词轮播
+setInterval(() => {
+  speakRandomMascotQuote();
+}, 9000);

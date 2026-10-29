@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>大肥鱼领养舱 · AI 赛博伴侣一键接入</title>
-  <link rel="stylesheet" href="css/style.css?v=3.4">
+  <link rel="stylesheet" href="css/style.css?v=3.5">
   <link rel="icon" type="image/png" href="img/dafeiyu_logo.png">
 </head>
 <body>
@@ -77,29 +77,71 @@
             <h2 class="hero-headline">先让大肥鱼记住你</h2>
             <p class="hero-subtext">只需要准备两个 QQ。AI 默认走暴喵，也可以随时切换到 DeepSeek。</p>
             
-            <!-- 修复“图是不全的”：超清完整无裁剪大肥鱼展示立牌 -->
-            <div class="dafeiyu-showcase-card">
-              <div class="showcase-bubble-header">
-                <span class="bubble-sparkle">✨</span>
-                <span class="bubble-caption">我是吃白饭的大肥鱼！</span>
-                <span class="bubble-rice">🍚</span>
+            <!-- 二次元专属契约立牌与召唤舞台 (对标蔚蓝档案 / 星穹铁道 角色展台) -->
+            <div class="dafeiyu-showcase-card" onclick="speakRandomMascotQuote()" title="点击大肥鱼可以和她互动哦～">
+              <!-- 卡牌顶部属性与稀有度标牌 -->
+              <div class="showcase-card-header">
+                <div class="card-id-tag">
+                  <span class="pulse-spark">✦</span>
+                  <span>COMPANION #001</span>
+                </div>
+                <div class="rarity-badge">
+                  <span class="ur-tag">UR</span>
+                  <span class="stars">★★★★★</span>
+                </div>
               </div>
+
+              <!-- 拟真漫画动态对话气泡 -->
+              <div class="anime-speech-bubble" id="chibi-bubble">
+                <div class="bubble-sparkle-dot">✨</div>
+                <p id="bubble-text">「主人～快带大肥鱼回家！每天喂一碗大白饭就好啦～🍚」</p>
+                <span class="bubble-arrow"></span>
+              </div>
+
+              <!-- 立绘召唤舞台与光环底盘 -->
               <div class="showcase-figure-stage">
+                <!-- 科技召唤魔法阵/光环底座 -->
+                <div class="stage-summon-pedestal">
+                  <div class="pedestal-ring inner-ring"></div>
+                  <div class="pedestal-ring outer-ring"></div>
+                </div>
+
+                <!-- 浮动漂浮粒子与米饭金星 -->
+                <div class="stage-floating-sparks" aria-hidden="true">
+                  <span class="spark s1">🍚</span>
+                  <span class="spark s2">✨</span>
+                  <span class="spark s3">💙</span>
+                  <span class="spark s4">⭐</span>
+                </div>
+
+                <!-- 大肥鱼超清萌化立绘 (带呼吸浮动与发光) -->
                 <img src="img/dafeiyu_chibi.png" alt="吃白饭的大肥鱼立绘" class="showcase-chibi-img">
               </div>
-              <div class="showcase-role-pill">
-                <span>蓝色大肥鱼 · 爱吃白饭的鲸鱼娘</span>
+
+              <!-- 角色档案与好感度契约条 -->
+              <div class="showcase-profile-hud">
+                <div class="profile-name-row">
+                  <span class="character-name">大肥鱼 · 暴喵鲸鱼娘</span>
+                  <span class="character-spec-tag">🌊 傲娇萌宠</span>
+                </div>
+                <div class="profile-affinity-bar">
+                  <span class="affinity-label">契约好感</span>
+                  <div class="affinity-track">
+                    <div class="affinity-fill"></div>
+                  </div>
+                  <span class="affinity-val">Lv.1 萌新</span>
+                </div>
               </div>
             </div>
 
             <!-- 6枚特色特征胶囊 -->
             <div class="tag-matrix">
-              <span class="matrix-pill">傲娇又天然呆</span>
-              <span class="matrix-pill">喜欢摸鱼和白饭</span>
-              <span class="matrix-pill">准备就绪就会醒</span>
-              <span class="matrix-pill">密钥不回显</span>
-              <span class="matrix-pill">仅保存在本机</span>
-              <span class="matrix-pill">随时可以返回修改</span>
+              <span class="matrix-pill">🍚 极度嗜吃大白饭</span>
+              <span class="matrix-pill">💙 傲娇天然呆体质</span>
+              <span class="matrix-pill">⚡ 满血 R1 深度思考</span>
+              <span class="matrix-pill">🛡️ 仅本机私有保存</span>
+              <span class="matrix-pill">🔑 专属契约一键认主</span>
+              <span class="matrix-pill">🌸 三形态自由切换</span>
             </div>
           </div>
 
