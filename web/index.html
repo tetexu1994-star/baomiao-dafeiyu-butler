@@ -245,14 +245,16 @@
               </div>
               <div class="input-glow-box model-select-box">
                 <select id="model_select" class="model-dropdown-select" onchange="onModelSelectChanged(this.value)">
-                  <option value="deepseek-flash" selected>DeepSeek-V4.1-Flash (推荐·极速)</option>
-                  <option value="deepseek-v4-pro">DeepSeek-V4-Pro (强力推荐)</option>
+                  <option value="DeepSeek-V4.1-Flash 1017(1.20x)" selected>DeepSeek-V4.1-Flash 1017(1.20x)</option>
+                  <option value="deepseek-flash">deepseek-flash (标准极速)</option>
+                  <option value="Deepseek-V4-Pro (3.60x)">Deepseek-V4-Pro (3.60x)</option>
+                  <option value="deepseek-v4-pro">deepseek-v4-pro (标准强力)</option>
                 </select>
                 <button type="button" class="btn-refresh-models" id="btn-refresh-models" onclick="fetchModelsFromApi(true)" title="重新拉取模型列表">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 </button>
               </div>
-              <input type="hidden" id="model_name" value="deepseek-flash">
+              <input type="hidden" id="model_name" value="DeepSeek-V4.1-Flash 1017(1.20x)">
               <p class="block-hint" id="model-fetch-hint">已根据您的 API Key 自动拉取确定可用的已授权模型，直接选用即可，无需繁琐输入。</p>
             </div>
 

@@ -39,7 +39,7 @@ class GeneratorTests(unittest.TestCase):
         config = build_astrbot_config(existing, self.user_config)
 
         self.assertEqual(config["log_level"], "DEBUG")
-        self.assertEqual([item["id"] for item in config["provider"]], ["other", "baomiao-deepseek"])
+        self.assertEqual([item["id"] for item in config["provider"]], ["other", "baomiao-deepseek", "baomiao-deepseek-fallback"])
         self.assertEqual(config["provider_settings"]["default_provider_id"], "baomiao-deepseek")
         self.assertEqual(config["admins_id"], ["12345678"])
         self.assertEqual(config["dashboard"]["host"], "127.0.0.1")
@@ -94,7 +94,7 @@ class ValidationTests(unittest.TestCase):
     def test_fetch_available_models_fallback(self):
         models = fetch_available_models("", "")
         self.assertTrue(len(models) >= 1)
-        self.assertEqual(models[0]["id"], "deepseek-flash")
+        self.assertEqual(models[0]["id"], "DeepSeek-V4.1-Flash 1017(1.20x)")
 
 
 if __name__ == "__main__":

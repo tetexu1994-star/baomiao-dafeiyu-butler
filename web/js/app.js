@@ -5,7 +5,7 @@ let currentConfig = {
   api_key: "",
   api_key_set: false,
   api_base: "https://open-ai.baomiao.cn/v1",
-  model_name: "deepseek-flash",
+  model_name: "DeepSeek-V4.1-Flash 1017(1.20x)",
   whitelist_only: false
 };
 

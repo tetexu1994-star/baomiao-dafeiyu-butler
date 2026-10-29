@@ -178,6 +178,34 @@ def test_llm_connection(config):
             detail = e.read().decode("utf-8", errors="ignore")[:300]
         except Exception:
             pass
+        # 兼容全名与简写自动无感回退切换
+        if e.code == 400 and ("supported API model names" in detail or "invalid_request_error" in detail):
+            alt_model = "deepseek-flash" if "1017" in model else "DeepSeek-V4.1-Flash 1017(1.20x)"
+            alt_payload = json.dumps({
+                "model": alt_model,
+                "messages": [{"role": "user", "content": "你好"}],
+                "max_tokens": 8,
+                "stream": False,
+            }).encode("utf-8")
+            alt_req = urllib.request.Request(
+                url,
+                data=alt_payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}",
+                    "User-Agent": "BaomiaoButler/1.3",
+                },
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(alt_req, timeout=20) as alt_resp:
+                    config["model_name"] = alt_model
+                    with config_lock:
+                        user_config["model_name"] = alt_model
+                        save_user_config(user_config)
+                    return True, f"LLM API 连通正常（已智能适配：{alt_model}）"
+            except Exception:
+                pass
         if e.code in (401, 403):
             return False, f"LLM API 鉴权失败（HTTP {e.code}），请检查 API Key"
         if e.code == 404:
@@ -192,8 +220,10 @@ def fetch_available_models(api_base, api_key):
     api_base = str(api_base or "").strip().rstrip("/")
     api_key = str(api_key or "").strip()
     fallback = [
-        {"id": "deepseek-flash", "name": "DeepSeek-V4.1-Flash"},
-        {"id": "deepseek-v4-pro", "name": "DeepSeek-V4-Pro"},
+        {"id": "DeepSeek-V4.1-Flash 1017(1.20x)", "name": "DeepSeek-V4.1-Flash 1017(1.20x)"},
+        {"id": "deepseek-flash", "name": "deepseek-flash (标准极速)"},
+        {"id": "Deepseek-V4-Pro (3.60x)", "name": "Deepseek-V4-Pro (3.60x)"},
+        {"id": "deepseek-v4-pro", "name": "deepseek-v4-pro (标准强力)"},
     ]
     if not api_base or not api_key:
         return fallback
@@ -225,17 +255,27 @@ def fetch_available_models(api_base, api_key):
                     if mid and mid not in seen:
                         seen.add(mid)
                         models.append({"id": mid, "name": mid})
+            # 如果包含 flash 模型，同时提供全名和标准 ID
+            has_flash = any("flash" in m["id"].lower() for m in models)
+            if has_flash:
+                if not any(m["id"] == "DeepSeek-V4.1-Flash 1017(1.20x)" for m in models):
+                    models.insert(0, {"id": "DeepSeek-V4.1-Flash 1017(1.20x)", "name": "DeepSeek-V4.1-Flash 1017(1.20x)"})
+                if not any(m["id"] == "deepseek-flash" for m in models):
+                    models.append({"id": "deepseek-flash", "name": "deepseek-flash (标准极速)"})
             return models if models else fallback
     except Exception:
         return fallback
 
 
-def pick_best_model(models, preferred="deepseek-flash"):
+def pick_best_model(models, preferred="DeepSeek-V4.1-Flash 1017(1.20x)"):
     if not models:
         return preferred
     model_ids = [m["id"] if isinstance(m, dict) else str(m) for m in models]
     for mid in model_ids:
         if mid.lower() == preferred.lower():
+            return mid
+    for mid in model_ids:
+        if "1017" in mid:
             return mid
     for mid in model_ids:
         if "flash" in mid.lower():

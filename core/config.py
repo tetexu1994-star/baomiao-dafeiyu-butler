@@ -11,7 +11,7 @@ DEFAULT_CONFIG = {
     "api_provider": "deepseek",  # deepseek / custom
     "api_key": "",
     "api_base": "https://api.deepseek.com/v1",
-    "model_name": "deepseek-flash",
+    "model_name": "DeepSeek-V4.1-Flash 1017(1.20x)",
     "install_dir": os.path.join(os.path.expanduser("~"), "BaomiaoDaFeiYu"),
     "napcat_port": 6199,
     "astrbot_port": 6185,
