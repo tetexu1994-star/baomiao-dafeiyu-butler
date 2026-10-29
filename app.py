@@ -433,10 +433,10 @@ def main():
             window = webview.create_window(
                 title="大肥鱼一键接入QQ",
                 url=url,
-                width=1000,
-                height=820,
+                width=1040,
+                height=850,
                 resizable=True,
-                min_size=(900, 680)
+                min_size=(920, 680)
             )
             webview.start()
             if process_mgr:

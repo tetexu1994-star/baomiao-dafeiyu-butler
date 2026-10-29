@@ -251,10 +251,17 @@ function setLoginSuccessUI() {
 
   if (placeholder) {
     placeholder.style.display = "flex";
-    placeholder.innerHTML = '<div style="font-size: 56px; margin-bottom: 10px; animation: bounceIn 0.5s ease;">🐟✨</div><p style="color: #10b981; font-weight: bold; font-size: 17px; margin-bottom: 4px;">大肥鱼已激活·在线中</p><p style="color: #6b7280; font-size: 13px;">已免扫码自动上线，随时给小号发消息对话</p>';
+    placeholder.innerHTML = `
+      <div class="active-mascot-wrapper" style="position: relative; width: 84px; height: 84px; margin: 0 auto 10px auto; animation: bounceIn 0.5s ease;">
+        <img src="img/dafeiyu_logo.png" alt="大肥鱼" style="width: 84px; height: 84px; border-radius: 50%; border: 3px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.45); object-fit: cover;">
+        <span style="position: absolute; bottom: 2px; right: 2px; width: 16px; height: 16px; background: #10b981; border: 2.5px solid #0f172a; border-radius: 50%; box-shadow: 0 0 8px #10b981;"></span>
+      </div>
+      <p style="color: #10b981; font-weight: bold; font-size: 16px; margin: 0 0 4px 0;">大肥鱼已激活 · 在线中</p>
+      <p style="color: #94a3b8; font-size: 12.5px; margin: 0; line-height: 1.4;">免扫码自动上线<br>随时给小号发消息对话</p>
+    `;
   }
   if (qrImg) qrImg.style.display = "none";
-  if (banner) banner.style.display = "block";
+  if (banner) banner.style.display = "flex";
   if (status) status.textContent = "大肥鱼已激活·在线中";
   if (radarTag) {
     radarTag.innerHTML = '<span class="radar-ping" style="background: #10b981;"></span><span style="color: #10b981; font-weight: 600;">大肥鱼状态：在线服务中</span>';

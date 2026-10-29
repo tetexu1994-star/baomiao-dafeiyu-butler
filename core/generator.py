@@ -133,15 +133,14 @@ def build_astrbot_config(existing, user_config):
     provider_settings["wake_prefix"] = ""
 
     platform_settings = config.setdefault("platform_settings", {})
-    # 默认关闭白名单拦截，确保用户与机器人无论是私聊还是群聊均能立即得到大肥鱼回复
-    platform_settings["enable_id_white_list"] = bool(user_config.get("whitelist_only", False))
-    platform_settings["id_whitelist"] = (
-        [f"aiocqhttp:FriendMessage:{master_qq}"] if master_qq else []
-    )
+    # 彻底关闭白名单拦截，确保用户与机器人无论是私聊还是群聊均能立即得到大肥鱼回复
+    platform_settings["enable_id_white_list"] = False
+    platform_settings["id_whitelist"] = []
     platform_settings["wl_ignore_admin_on_group"] = True
     platform_settings["wl_ignore_admin_on_friend"] = True
     platform_settings["friend_message_needs_wake_prefix"] = False
     platform_settings["ignore_bot_self_message"] = False
+    platform_settings["no_permission_reply"] = False
 
     config["admins_id"] = [master_qq] if master_qq else []
     config["persona"] = [
@@ -178,6 +177,8 @@ def _silent_kwargs():
 
 def inject_astrbot_persona(install_dir):
     # 1. 直接更新 SQLite 数据库中的 default 和 dafeiyu_v36，彻底保证对话时人设100%生效
+    import datetime
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")
     db_paths = [
         os.path.join(install_dir, "AstrBot", "data", "data_v4.db"),
         os.path.join(os.path.expanduser("~"), "data", "data_v4.db"),
@@ -187,9 +188,16 @@ def inject_astrbot_persona(install_dir):
             try:
                 import sqlite3
                 conn = sqlite3.connect(db_path)
-                conn.execute("UPDATE personas SET system_prompt = ? WHERE persona_id = 'default'", (DAFEIYU_PROMPT_V36,))
-                conn.execute("INSERT OR REPLACE INTO personas (persona_id, system_prompt) VALUES (?, ?)", (DAFEIYU_PERSONA_ID, DAFEIYU_PROMPT_V36))
-                conn.execute("INSERT OR REPLACE INTO personas (persona_id, system_prompt) VALUES ('default', ?)", (DAFEIYU_PROMPT_V36,))
+                cur = conn.cursor()
+                cur.execute("UPDATE personas SET system_prompt = ?, updated_at = ? WHERE persona_id = 'default'", (DAFEIYU_PROMPT_V36, now))
+                row = cur.execute("SELECT id FROM personas WHERE persona_id = 'dafeiyu_v36'").fetchone()
+                if row:
+                    cur.execute("UPDATE personas SET system_prompt = ?, updated_at = ? WHERE persona_id = 'dafeiyu_v36'", (DAFEIYU_PROMPT_V36, now))
+                else:
+                    cur.execute("""
+                        INSERT INTO personas (created_at, updated_at, persona_id, system_prompt, begin_dialogs, tools, skills, sort_order)
+                        VALUES (?, ?, 'dafeiyu_v36', ?, '[]', 'null', 'null', 0)
+                    """, (now, now, DAFEIYU_PROMPT_V36))
                 conn.commit()
                 conn.close()
             except Exception:

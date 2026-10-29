@@ -83,12 +83,12 @@ body {
 /* 领养舱主外框 */
 .commercial-app {
   width: 100%;
-  max-width: 1020px;
+  max-width: 1040px;
   height: 100vh;
-  max-height: 840px;
+  max-height: 100vh;
   background: var(--bg-app-shell);
   border: 1px solid var(--border-medium);
-  border-radius: 18px;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -280,7 +280,7 @@ body {
 .main-stage {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 24px;
+  padding: 14px 22px;
   display: flex;
   flex-direction: column;
 }
