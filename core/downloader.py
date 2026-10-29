@@ -315,8 +315,50 @@ class ComponentDownloader:
     @staticmethod
     def _venv_python(venv_dir):
         if sys.platform.startswith("win"):
+            root_py = os.path.join(venv_dir, "python.exe")
+            if os.path.isfile(root_py):
+                return root_py
             return os.path.join(venv_dir, "Scripts", "python.exe")
         return os.path.join(venv_dir, "bin", "python")
+
+    @staticmethod
+    def fix_windows_pywin32(venv_dir):
+        """彻底修复 Windows 环境下 pywintypes/pythoncom 模块找不到的问题"""
+        if not sys.platform.startswith("win"):
+            return
+        try:
+            sp = os.path.join(venv_dir, "Lib", "site-packages")
+            sys32 = os.path.join(sp, "pywin32_system32")
+            win32_lib = os.path.join(sp, "win32", "lib")
+            scripts = os.path.join(venv_dir, "Scripts")
+
+            # 1. 自动注入 extra.pth 路径
+            pth_content = "win32\nwin32\\lib\npywin32_system32\n"
+            for target_dir in [sp, os.path.join(scripts, "Lib", "site-packages")]:
+                os.makedirs(target_dir, exist_ok=True)
+                with open(os.path.join(target_dir, "pywin32_extra.pth"), "w", encoding="utf-8") as f:
+                    f.write(pth_content)
+
+            # 2. 复制 DLL 关键依赖到根目录、site-packages 与 Scripts
+            if os.path.isdir(sys32):
+                for dll in os.listdir(sys32):
+                    if dll.lower().endswith(".dll"):
+                        src_dll = os.path.join(sys32, dll)
+                        for dst_dir in [venv_dir, sp, scripts]:
+                            os.makedirs(dst_dir, exist_ok=True)
+                            dst_dll = os.path.join(dst_dir, dll)
+                            if not os.path.isfile(dst_dll):
+                                shutil.copy2(src_dll, dst_dll)
+
+            # 3. 复制核心 loader 到 site-packages
+            if os.path.isdir(win32_lib):
+                for pyf in ["pywintypes.py", "pythoncom.py"]:
+                    src = os.path.join(win32_lib, pyf)
+                    dst = os.path.join(sp, pyf)
+                    if os.path.isfile(src) and not os.path.isfile(dst):
+                        shutil.copy2(src, dst)
+        except Exception:
+            pass
 
     @staticmethod
     def _run(command, cwd=None, env=None):
@@ -417,19 +459,8 @@ class ComponentDownloader:
             if result.returncode != 0:
                 raise RuntimeError(f"安装 AstrBot 失败: {result.stdout[-800:]}")
 
-        # 自动补全 Windows pywin32 系统 DLL 依赖
-        if sys.platform.startswith("win"):
-            try:
-                pywin_sys32 = os.path.join(venv_dir, "Lib", "site-packages", "pywin32_system32")
-                if os.path.isdir(pywin_sys32):
-                    for dll in os.listdir(pywin_sys32):
-                        if dll.lower().endswith(".dll"):
-                            src_dll = os.path.join(pywin_sys32, dll)
-                            dst_dll = os.path.join(venv_dir, dll)
-                            if not os.path.isfile(dst_dll):
-                                shutil.copy2(src_dll, dst_dll)
-            except Exception:
-                pass
+        # 自动补全 Windows pywin32 系统依赖与路径
+        self.fix_windows_pywin32(venv_dir)
 
         env = os.environ.copy()
         env["ASTRBOT_ROOT"] = target_dir

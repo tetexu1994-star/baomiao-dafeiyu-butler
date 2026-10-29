@@ -224,7 +224,7 @@ class ProcessManager:
                 return [p, "run"], astrbot_dir
 
         venv_python_root = os.path.join(astrbot_dir, ".venv", "python.exe")
-        if os.path.exists(venv_python_root):
+        if os.path.isfile(venv_python_root):
             return [venv_python_root, "-m", "astrbot.cli", "run"], astrbot_dir
 
         venv_python = os.path.join(
@@ -233,7 +233,7 @@ class ProcessManager:
             "Scripts" if sys.platform.startswith("win") else "bin",
             "python.exe" if sys.platform.startswith("win") else "python",
         )
-        if os.path.exists(venv_python):
+        if os.path.isfile(venv_python):
             return [venv_python, "-m", "astrbot.cli", "run"], astrbot_dir
 
         which_astr = shutil.which("astrbot")
@@ -251,17 +251,12 @@ class ProcessManager:
             return True
         cmd, cwd = self._astrbot_command()
         try:
-            # 针对 Windows 嵌入式 Python 环境，自动补全 pywintypes/pythoncom 运行库依赖
+            # 针对 Windows 嵌入式/沙箱 Python 环境，彻底注入 pywintypes/pythoncom 完整依赖
             try:
+                from .downloader import ComponentDownloader
                 astrbot_dir = os.path.join(self.install_dir, "AstrBot")
                 venv_dir = os.path.join(astrbot_dir, ".venv")
-                pywin_sys = os.path.join(venv_dir, "Lib", "site-packages", "pywin32_system32")
-                if os.path.isdir(pywin_sys) and os.path.isdir(venv_dir):
-                    for dll_name in ("pywintypes312.dll", "pythoncom312.dll"):
-                        src_f = os.path.join(pywin_sys, dll_name)
-                        dst_f = os.path.join(venv_dir, dll_name)
-                        if os.path.isfile(src_f) and not os.path.isfile(dst_f):
-                            shutil.copy2(src_f, dst_f)
+                ComponentDownloader.fix_windows_pywin32(venv_dir)
             except Exception:
                 pass
 
@@ -440,9 +435,10 @@ class ProcessManager:
             def _async_wait_port():
                 if not self._wait_for_port(self.onebot_port, timeout=45):
                     if not self._process_is_alive(self.astrbot_proc):
-                        self.log("AstrBot", f"OneBot 反向 WebSocket 端口 {self.onebot_port} 启动失败")
+                        code = self.astrbot_proc.poll() if self.astrbot_proc else "未知"
+                        self.log("AstrBot", f"AstrBot 进程异常退出 (退出代码 {code})，OneBot 端口 {self.onebot_port} 启动失败")
                         if self.qr_callback:
-                            self.qr_callback({"type": "status", "status": "failed", "message": f"OneBot 端口 {self.onebot_port} 启动失败"})
+                            self.qr_callback({"type": "status", "status": "failed", "message": f"AstrBot 服务已退出 (代码 {code})"})
                     else:
                         self.log("AstrBot", f"OneBot 端口 {self.onebot_port} 正在准备中...")
                 else:
