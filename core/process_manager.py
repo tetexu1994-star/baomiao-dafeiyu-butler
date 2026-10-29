@@ -409,21 +409,27 @@ class ProcessManager:
                 self._qr_thread = threading.Thread(target=self.check_qr_file, daemon=True)
                 self._qr_thread.start()
 
+            # 优化 1：优先秒级启动 NapCat！让扫码二维码在 2~3 秒内立刻渲染到前端界面！
+            if not self.start_napcat(bot_qq=bot_qq):
+                self.stop_all()
+                return False
+
+            # 优化 2：同时并发拉起 AstrBot AI 核心
             if not self.start_astrbot():
                 self.stop_all()
                 return False
 
-            if not self._wait_for_port(self.onebot_port, timeout=45):
-                # 检查 AstrBot 进程是否依然存活，如果存活只是端口延迟，给以提示并继续启动 NapCat
-                if not self._process_is_alive(self.astrbot_proc):
-                    self.log("AstrBot", f"OneBot 反向 WebSocket 端口 {self.onebot_port} 启动失败")
-                    self.stop_all()
-                    return False
-                self.log("AstrBot", f"OneBot 端口 {self.onebot_port} 正在准备中，继续拉起 NapCat...")
+            # 优化 3：OneBot 通信端口就绪检测移至后台异步守护线程，完全解耦前端响应！
+            def _async_wait_port():
+                if not self._wait_for_port(self.onebot_port, timeout=45):
+                    if not self._process_is_alive(self.astrbot_proc):
+                        self.log("AstrBot", f"OneBot 反向 WebSocket 端口 {self.onebot_port} 启动失败")
+                    else:
+                        self.log("AstrBot", f"OneBot 端口 {self.onebot_port} 正在准备中...")
+                else:
+                    self.log("AstrBot", f"✅ OneBot 反向 WebSocket 已成功就绪并监听端口 {self.onebot_port}")
 
-            if not self.start_napcat(bot_qq=bot_qq):
-                self.stop_all()
-                return False
+            threading.Thread(target=_async_wait_port, daemon=True).start()
             return True
         finally:
             self._starting = False
