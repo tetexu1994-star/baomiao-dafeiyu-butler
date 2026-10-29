@@ -312,7 +312,10 @@
               <span class="light green"></span>
             </div>
             <span class="console-name">大肥鱼领养舱实时装配日志</span>
-            <button class="btn-console-clear" onclick="clearTerminal()">清屏</button>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button class="btn-console-clear" onclick="openLogDir()">📂 日志文件夹</button>
+              <button class="btn-console-clear" onclick="clearTerminal()">清屏</button>
+            </div>
           </div>
           <div class="log-terminal" id="log-terminal">
             <div class="terminal-line">[系统] 大肥鱼领养舱部署引擎已就绪...</div>
@@ -371,6 +374,7 @@
             <div class="activation-toolbar">
               <button class="btn btn-outline btn-sm" onclick="restartServices()">🔄 刷新连接</button>
               <button class="btn btn-outline btn-sm" onclick="relogin()">🔑 重新扫码换号</button>
+              <button class="btn btn-outline btn-sm" onclick="openLogDir()">📂 查看运行日志</button>
               <button class="btn btn-outline btn-sm" onclick="goToStep(1)">✏️ 修改基本信息</button>
               <button class="btn btn-danger-soft btn-sm" onclick="stopServices()">⏹️ 停止服务</button>
             </div>

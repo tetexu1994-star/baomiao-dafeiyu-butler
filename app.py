@@ -417,16 +417,20 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
                     pass
             self._send_json({"success": True})
         elif parsed.path == "/api/service/status":
-            is_connected = bool(process_mgr and (process_mgr.is_logged_in or process_mgr.is_onebot_connected()))
+            is_qq_logged_in = bool(process_mgr and process_mgr.is_logged_in)
+            is_onebot_connected = bool(process_mgr and process_mgr.is_onebot_connected())
             has_qr = bool(process_mgr and process_mgr.last_qr)
-            is_chat_ready = bool(is_connected and llm_ready_state.get("ready"))
+            is_chat_ready = bool(is_qq_logged_in and is_onebot_connected and llm_ready_state.get("ready"))
+            log_dir = getattr(process_mgr, "log_dir", "") if process_mgr else os.path.join(user_config.get("install_dir", ""), "logs")
             self._send_json({
                 "success": True,
                 "running": process_mgr.is_running if process_mgr else False,
-                "is_logged_in": is_connected,
+                "is_logged_in": is_qq_logged_in,
+                "is_onebot_connected": is_onebot_connected,
                 "is_chat_ready": is_chat_ready,
                 "has_qr": has_qr,
                 "qr_data": process_mgr.last_qr if process_mgr else "",
+                "log_dir": log_dir,
             })
         elif parsed.path == "/api/events":
             self.send_response(200)
@@ -448,6 +452,22 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
                 pass
             finally:
                 event_broker.unsubscribe(subscriber)
+        elif parsed.path == "/api/open_log_dir":
+            with config_lock:
+                install_dir = user_config.get("install_dir") or DEFAULT_CONFIG["install_dir"]
+            log_dir = os.path.join(install_dir, "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            try:
+                if sys.platform.startswith("win"):
+                    os.startfile(log_dir)
+                elif sys.platform == "darwin":
+                    subprocess.Popen(["open", log_dir])
+                else:
+                    subprocess.Popen(["xdg-open", log_dir])
+                self._send_json({"success": True, "log_dir": log_dir})
+            except Exception as e:
+                self._send_json({"success": False, "message": str(e), "log_dir": log_dir})
+
         elif parsed.path == "/api/fetch_models":
             query = parse_qs(parsed.query)
             with config_lock:
@@ -642,6 +662,22 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
                 self._send_json({"success": ok, "message": "" if ok else "重新启动失败", "bot_qq": config_snapshot.get("bot_qq", "")})
             except Exception as exc:
                 self._send_json({"success": False, "message": str(exc)}, 400)
+
+        elif parsed.path == "/api/open_log_dir":
+            with config_lock:
+                install_dir = user_config.get("install_dir") or DEFAULT_CONFIG["install_dir"]
+            log_dir = os.path.join(install_dir, "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            try:
+                if sys.platform.startswith("win"):
+                    os.startfile(log_dir)
+                elif sys.platform == "darwin":
+                    subprocess.Popen(["open", log_dir])
+                else:
+                    subprocess.Popen(["xdg-open", log_dir])
+                self._send_json({"success": True, "log_dir": log_dir})
+            except Exception as e:
+                self._send_json({"success": False, "message": str(e), "log_dir": log_dir})
 
         elif parsed.path == "/api/fetch_models":
             with config_lock:

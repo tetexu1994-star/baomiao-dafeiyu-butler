@@ -575,7 +575,6 @@ async function checkServiceStatus() {
 
     if (data.has_qr && data.qr_data) {
       renderQrCode(data.qr_data);
-      stopQrPolling();
       return;
     }
 
@@ -822,6 +821,20 @@ async function clearApiKey() {
     showToast("已清除保存的 API Key");
   } catch (err) {
     showToast("清除失败，请确认管家服务仍在运行");
+  }
+}
+
+async function openLogDir() {
+  try {
+    const res = await fetch("/api/open_log_dir", { method: "POST" });
+    const data = await res.json();
+    if (data.success) {
+      showToast("已打开日志目录：" + (data.log_dir || ""));
+    } else {
+      showToast("打开日志目录失败: " + (data.message || "未知错误"));
+    }
+  } catch (err) {
+    showToast("无法打开日志目录：" + err);
   }
 }
 

@@ -39,6 +39,13 @@ class ProcessManager:
         self.last_qr = None
         self.is_logged_in = False
         self._onebot_cache = (0.0, False)
+        # 初始化持久化日志文件目录
+        self.log_dir = os.path.join(self.install_dir, "logs")
+        try:
+            os.makedirs(self.log_dir, exist_ok=True)
+            self.log_file = os.path.join(self.log_dir, "dafeiyu.log")
+        except Exception:
+            self.log_file = None
 
     def is_onebot_connected(self):
         """检查 NapCat 与 AstrBot 之间的 OneBot 11 反向 WebSocket 是否处于已连接状态（纯静默模式）"""
@@ -61,13 +68,21 @@ class ProcessManager:
                     break
         except Exception:
             pass
-        self.is_logged_in = result
         self._onebot_cache = (now, result)
         return result
 
     def log(self, tag, text):
+        clean_text = text.strip()
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        formatted = f"[{timestamp}] [{tag}] {clean_text}"
+        if self.log_file:
+            try:
+                with open(self.log_file, "a", encoding="utf-8", errors="replace") as f:
+                    f.write(formatted + "\n")
+            except Exception:
+                pass
         if self.log_callback:
-            self.log_callback({"tag": tag, "text": text.strip()})
+            self.log_callback({"tag": tag, "text": clean_text})
 
     def status(self):
         with self._lock:
@@ -77,7 +92,8 @@ class ProcessManager:
                 "astrbot": self.astrbot_proc is not None and self.astrbot_proc.poll() is None,
                 "napcat": self.napcat_proc is not None and self.napcat_proc.poll() is None,
                 "has_qr": bool(self.last_qr),
-                "is_logged_in": connected,
+                "is_logged_in": self.is_logged_in,
+                "is_onebot_connected": connected,
             }
 
     def _clean_old_qr(self):
@@ -130,12 +146,8 @@ class ProcessManager:
         napcat_dir = os.path.join(self.install_dir, "NapCat")
         last_mtimes = {}
         while self.is_running:
-            # 优先检查连接状态：若 NapCat 已经自动快速登录并与 AstrBot 建立了 OneBot 连接，直接触发登录成功
-            if self.is_onebot_connected():
-                if not self.is_logged_in:
-                    self.is_logged_in = True
-                    if self.qr_callback:
-                        self.qr_callback({"type": "status", "status": "success", "message": "大肥鱼已在线（自动快速登录成功）！"})
+            # 只有 QQ 真正登录成功后才停止扫描二维码文件
+            if self.is_logged_in:
                 time.sleep(1.5)
                 continue
 
@@ -393,14 +405,18 @@ class ProcessManager:
                     _reconnect_hint_sent = True
                 continue
             self.log(tag, clean_line)
-            success_keywords = (
-                "扫码成功", "登录成功", "快速登录", "Quick Login",
-                "Login successful", "login success", "已登录",
-                "自动登录", "OneBot11 适配器初始化完成",
-                "aiocqhttp(OneBot v11) 适配器已连接",
-                "WebSocket反向服务",
+            # 严格筛选真正代表 QQ 账号登录成功的标识，杜绝端口/适配器连接等伪在线
+            qq_login_keywords = (
+                "登录成功", "扫码成功", "快速登录成功", "Quick Login Success",
+                "Login successful", "login success", "欢迎使用 NapCat",
             )
-            if any(kw in clean_line for kw in success_keywords):
+            # 排除适配器或本地 WebSocket 初始化
+            is_qq_login = any(kw in clean_line for kw in qq_login_keywords) and not any(
+                ex in clean_line for ex in ("适配器", "WebSocket", "OneBot11", "aiocqhttp", "连接到")
+            )
+            is_qq_msg = "接收 <- 私聊" in clean_line or "接收 <- 群聊" in clean_line or "发送 -> 私聊" in clean_line
+
+            if is_qq_login or is_qq_msg:
                 self.is_logged_in = True
                 if self.qr_callback:
                     self.qr_callback({"type": "status", "status": "qq_logged_in", "message": "QQ 登录成功，正在建立 OneBot 通信并唤醒 AI 对话引擎..."})
