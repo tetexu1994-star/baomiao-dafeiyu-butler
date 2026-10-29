@@ -179,6 +179,12 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
         # 禁用默认的 stderr 打印，避免在 Windows 无窗口模式 (--windowed) 下抛出 NoneType 错误导致连接重置
         pass
 
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
+
     def _is_local_request(self):
         client_ip = getattr(self, "client_address", [None])[0]
         if client_ip in ("127.0.0.1", "::1", "localhost"):

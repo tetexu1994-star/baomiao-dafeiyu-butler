@@ -229,6 +229,13 @@ class ComponentDownloader:
 
     @staticmethod
     def _run(command, cwd=None, env=None):
+        kwargs = {}
+        if sys.platform.startswith("win"):
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            si.wShowWindow = 0
+            kwargs["startupinfo"] = si
+            kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
         return subprocess.run(
             command,
             cwd=cwd,
@@ -240,6 +247,7 @@ class ComponentDownloader:
             errors="ignore",
             timeout=1800,
             check=False,
+            **kwargs,
         )
 
     def _dashboard_password_file(self):

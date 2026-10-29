@@ -9,10 +9,13 @@ let currentConfig = {
 };
 
 let eventSource = null;
+let currentStep = 1;
 
 document.addEventListener("DOMContentLoaded", () => {
   loadConfig();
   initEventStream();
+  checkServiceStatus();
+  setInterval(checkServiceStatus, 1000);
 });
 
 function delay(ms) {
@@ -99,12 +102,16 @@ async function goToStep(step) {
     if (!saved) return;
   }
 
+  currentStep = step;
   document.querySelectorAll(".step-item").forEach((el, idx) => {
     el.classList.toggle("active", idx + 1 === step);
   });
   document.querySelectorAll(".card").forEach((el, idx) => {
     el.classList.toggle("active", idx + 1 === step);
   });
+  if (step === 3) {
+    checkServiceStatus();
+  }
 }
 
 function openHelpModal() {
@@ -234,6 +241,26 @@ async function startInstallation() {
 
 let qrPollingTimer = null;
 
+function setLoginSuccessUI() {
+  stopQrPolling();
+  const placeholder = document.getElementById("qr-placeholder");
+  const qrImg = document.getElementById("qr-image");
+  const banner = document.getElementById("success-banner");
+  const status = document.getElementById("service-status");
+  const radarTag = document.querySelector(".qr-radar-tag");
+
+  if (placeholder) {
+    placeholder.style.display = "flex";
+    placeholder.innerHTML = '<div style="font-size: 56px; margin-bottom: 10px; animation: bounceIn 0.5s ease;">🐟✨</div><p style="color: #10b981; font-weight: bold; font-size: 17px; margin-bottom: 4px;">大肥鱼已激活·在线中</p><p style="color: #6b7280; font-size: 13px;">已免扫码自动上线，随时给小号发消息对话</p>';
+  }
+  if (qrImg) qrImg.style.display = "none";
+  if (banner) banner.style.display = "block";
+  if (status) status.textContent = "大肥鱼已激活·在线中";
+  if (radarTag) {
+    radarTag.innerHTML = '<span class="radar-ping" style="background: #10b981;"></span><span style="color: #10b981; font-weight: 600;">大肥鱼状态：在线服务中</span>';
+  }
+}
+
 function renderQrCode(qrData) {
   const qrImg = document.getElementById("qr-image");
   const placeholder = document.getElementById("qr-placeholder");
@@ -247,31 +274,33 @@ function renderQrCode(qrData) {
   placeholder.style.display = "none";
 }
 
+async function checkServiceStatus() {
+  try {
+    const res = await fetch("/api/service/status");
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.success) return;
+
+    if (data.is_logged_in) {
+      setLoginSuccessUI();
+      return;
+    }
+
+    if (data.has_qr && data.qr_data) {
+      renderQrCode(data.qr_data);
+      stopQrPolling();
+      return;
+    }
+
+    if (currentStep === 3 && !data.running) {
+      startServices();
+    }
+  } catch (_) {}
+}
+
 function startQrPolling() {
   stopQrPolling();
-  qrPollingTimer = setInterval(async () => {
-    try {
-      const res = await fetch("/api/service/status");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          if (data.is_logged_in) {
-            stopQrPolling();
-            document.getElementById("qr-placeholder").style.display = "none";
-            document.getElementById("qr-image").style.display = "none";
-            document.getElementById("success-banner").style.display = "block";
-            document.getElementById("service-status").textContent = "大肥鱼已激活·在线中";
-            appendLog("[系统] 校验到大肥鱼已在后台自动上线，免去重复扫码！");
-            return;
-          }
-          if (data.has_qr && data.qr_data) {
-            renderQrCode(data.qr_data);
-            stopQrPolling();
-          }
-        }
-      }
-    } catch (_) {}
-  }, 1200);
+  qrPollingTimer = setInterval(checkServiceStatus, 1200);
 }
 
 function stopQrPolling() {
@@ -286,8 +315,11 @@ async function relogin() {
   document.getElementById("service-status").textContent = "正在清理凭证…";
   document.getElementById("success-banner").style.display = "none";
   document.getElementById("qr-image").style.display = "none";
-  document.getElementById("qr-placeholder").style.display = "flex";
-  document.getElementById("qr-placeholder").innerHTML = '<div class="scan-spinner"></div><p>正在生成全新登录二维码...</p>';
+  const placeholder = document.getElementById("qr-placeholder");
+  if (placeholder) {
+    placeholder.style.display = "flex";
+    placeholder.innerHTML = '<div class="scan-spinner"></div><p>正在生成全新登录二维码...</p>';
+  }
   startQrPolling();
   try {
     const res = await fetch("/api/relogin", {
@@ -306,7 +338,11 @@ async function relogin() {
 
 async function startServices() {
   document.getElementById("service-status").textContent = "正在启动服务…";
-  document.getElementById("qr-placeholder").style.display = "flex";
+  const placeholder = document.getElementById("qr-placeholder");
+  if (placeholder) {
+    placeholder.style.display = "flex";
+    placeholder.innerHTML = '<div class="scan-spinner"></div><p>正在连接大肥鱼服务...</p>';
+  }
   document.getElementById("qr-image").style.display = "none";
   document.getElementById("success-banner").style.display = "none";
   startQrPolling();
@@ -322,6 +358,7 @@ async function startServices() {
       throw new Error(data.message || "服务启动失败");
     }
     document.getElementById("service-status").textContent = "服务运行中";
+    checkServiceStatus();
   } catch (err) {
     document.getElementById("service-status").textContent = "启动失败";
     appendLog("[系统] 启动失败: " + err.message);
@@ -345,8 +382,10 @@ async function stopServices() {
     document.getElementById("service-status").textContent = "已停止";
     document.getElementById("qr-image").style.display = "none";
     const placeholder = document.getElementById("qr-placeholder");
-    placeholder.style.display = "flex";
-    placeholder.innerHTML = "<p>服务已停止，点击上方按钮可重新启动</p>";
+    if (placeholder) {
+      placeholder.style.display = "flex";
+      placeholder.innerHTML = "<p>服务已停止，点击上方按钮可重新启动</p>";
+    }
   } catch (err) {
     console.error(err);
   }
@@ -366,9 +405,7 @@ function initEventStream() {
         stopQrPolling();
         appendLog("[NapCat] 已捕获登录二维码，请使用手机 QQ 扫码。");
       } else if (payload.type === "login_success") {
-        stopQrPolling();
-        document.getElementById("success-banner").style.display = "block";
-        document.getElementById("service-status").textContent = "大肥鱼已激活·在线中";
+        setLoginSuccessUI();
         appendLog("🎉 [系统] 登录成功！大肥鱼已正式就绪！");
       }
     } catch (err) {

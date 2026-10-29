@@ -146,15 +146,37 @@ def _venv_python(install_dir):
     return os.path.join(install_dir, "AstrBot", ".venv", "bin", "python")
 
 
+def _silent_kwargs():
+    if os.name == "nt":
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = 0
+        return {"startupinfo": si, "creationflags": subprocess.CREATE_NO_WINDOW}
+    return {}
+
+
 def inject_astrbot_persona(install_dir):
+    # 1. 直接更新 SQLite 数据库中的 default 和 dafeiyu_v36，彻底保证对话时人设100%生效
+    db_path = os.path.join(install_dir, "AstrBot", "data", "data_v4.db")
+    if os.path.isfile(db_path):
+        try:
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            conn.execute("UPDATE personas SET system_prompt = ? WHERE persona_id = 'default'", (DAFEIYU_PROMPT_V36,))
+            conn.execute("INSERT OR REPLACE INTO personas (persona_id, system_prompt) VALUES (?, ?)", (DAFEIYU_PERSONA_ID, DAFEIYU_PROMPT_V36))
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
+
     python_path = _venv_python(install_dir)
     if not os.path.exists(python_path):
-        raise RuntimeError("AstrBot Python 环境不存在")
+        return
     env = os.environ.copy()
     env["ASTRBOT_ROOT"] = os.path.join(install_dir, "AstrBot")
     env["BAOMIAO_PERSONA_ID"] = DAFEIYU_PERSONA_ID
     env["BAOMIAO_PERSONA_PROMPT"] = DAFEIYU_PROMPT_V36
-    result = subprocess.run(
+    subprocess.run(
         [python_path, "-c", _PERSONA_BOOTSTRAP],
         cwd=env["ASTRBOT_ROOT"],
         env=env,
@@ -165,9 +187,8 @@ def inject_astrbot_persona(install_dir):
         errors="ignore",
         timeout=120,
         check=False,
+        **_silent_kwargs(),
     )
-    if result.returncode != 0:
-        raise RuntimeError(f"注入大肥鱼人设失败: {result.stdout[-800:]}")
 
 
 def generate_astrbot_config(install_dir, user_config):

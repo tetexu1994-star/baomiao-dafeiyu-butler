@@ -11,6 +11,19 @@ import time
 from typing import Optional
 
 
+def _silent_kwargs():
+    """在 Windows 下完全静默执行，禁止弹出任何黑框控制台窗口"""
+    if sys.platform.startswith("win"):
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = 0  # SW_HIDE
+        return {
+            "startupinfo": si,
+            "creationflags": subprocess.CREATE_NO_WINDOW,
+        }
+    return {}
+
+
 class ProcessManager:
     def __init__(self, install_dir, onebot_port=6199, log_callback=None, qr_callback=None):
         self.install_dir = os.path.abspath(install_dir)
@@ -27,12 +40,19 @@ class ProcessManager:
         self.is_logged_in = False
 
     def is_onebot_connected(self):
-        """检查 NapCat 与 AstrBot 之间的 OneBot 11 反向 WebSocket 是否处于已连接状态"""
+        """检查 NapCat 与 AstrBot 之间的 OneBot 11 反向 WebSocket 是否处于已连接状态（纯静默模式）"""
+        if self.is_logged_in:
+            return True
         try:
-            out = subprocess.check_output(["netstat", "-ano"], errors="ignore")
+            out = subprocess.check_output(
+                ["netstat", "-ano"],
+                errors="ignore",
+                **_silent_kwargs()
+            )
             target_port = f":{self.onebot_port}"
             for line in out.splitlines():
                 if target_port in line and "ESTABLISHED" in line:
+                    self.is_logged_in = True
                     return True
         except Exception:
             pass
@@ -49,6 +69,7 @@ class ProcessManager:
                 "astrbot": self.astrbot_proc is not None and self.astrbot_proc.poll() is None,
                 "napcat": self.napcat_proc is not None and self.napcat_proc.poll() is None,
                 "has_qr": bool(self.last_qr),
+                "is_logged_in": self.is_logged_in or self.is_onebot_connected(),
             }
 
     def _clean_old_qr(self):
@@ -82,6 +103,8 @@ class ProcessManager:
                     shutil.rmtree(cdir, ignore_errors=True)
                 except Exception:
                     pass
+        self.is_logged_in = False
+        self.last_qr = None
 
     def check_qr_file(self):
         napcat_dir = os.path.join(self.install_dir, "NapCat")
@@ -95,6 +118,7 @@ class ProcessManager:
                         self.qr_callback({"type": "status", "status": "success", "message": "大肥鱼已在线（自动快速登录成功）！"})
                 time.sleep(1.5)
                 continue
+
             candidate_paths = [
                 os.path.join(napcat_dir, "napcat", "cache", "qrcode.png"),
                 os.path.join(napcat_dir, "cache", "qrcode.png"),
@@ -183,6 +207,7 @@ class ProcessManager:
                 encoding="utf-8",
                 errors="ignore",
                 bufsize=1,
+                **_silent_kwargs(),
             )
             threading.Thread(
                 target=self._stream_output,
@@ -248,6 +273,7 @@ class ProcessManager:
                 encoding="utf-8",
                 errors="ignore",
                 bufsize=1,
+                **_silent_kwargs(),
             )
             threading.Thread(
                 target=self._stream_output,
@@ -272,6 +298,7 @@ class ProcessManager:
                 "Login successful", "login success", "已登录",
                 "自动登录", "OneBot11 适配器初始化完成",
                 "aiocqhttp(OneBot v11) 适配器已连接",
+                "WebSocket反向服务",
             )
             if any(kw in clean_line for kw in success_keywords):
                 self.is_logged_in = True
