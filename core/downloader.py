@@ -14,9 +14,10 @@ if BAOMIAO_CDN_BASE and not BAOMIAO_CDN_BASE.endswith("/"):
     BAOMIAO_CDN_BASE += "/"
 
 GH_PROXIES = [
-    "https://ghfast.top/",
-    "https://mirror.ghproxy.com/",
-    "https://ghproxy.net/",
+    "https://gh-proxy.com/",
+    "https://ghp.ci/",
+    "https://hub.gitmirror.com/",
+    "https://gh.ddlc.top/",
     "",
 ]
 
@@ -25,7 +26,7 @@ ASTRBOT_VERSION = "4.29.3"
 NAPCAT_FILENAME = "NapCat.Shell.Windows.Node.zip"
 NAPCAT_URL = (
     "https://github.com/NapNeko/NapCatQQ/releases/download/"
-    f"{NAPCAT_VERSION}/{NAPCAT_FILENAME}"
+    f"v{NAPCAT_VERSION}/{NAPCAT_FILENAME}"
 )
 NAPCAT_CDN_URL = f"{BAOMIAO_CDN_BASE}{NAPCAT_FILENAME}"
 NAPCAT_SHA256 = "51fbb10e7bcd56b0c2a6de86c37811e7518330e48a137ac689ab1e4d8627d3f0"
@@ -46,11 +47,17 @@ class ComponentDownloader:
 
     def download_file(self, raw_url, dest_path, expected_sha256=None):
         urls_to_try = []
-        if BAOMIAO_CDN_BASE and raw_url.endswith(NAPCAT_FILENAME):
-            urls_to_try.append(("暴喵官方国内高速节点", NAPCAT_CDN_URL))
-        for proxy in GH_PROXIES:
-            label = f"镜像通道 {proxy}" if proxy else "GitHub 官方直连"
-            urls_to_try.append((label, proxy + raw_url if proxy else raw_url))
+        # 双版本容错：带 v 和 不带 v
+        candidate_urls = [raw_url]
+        if "/releases/download/v" in raw_url:
+            candidate_urls.append(raw_url.replace("/releases/download/v", "/releases/download/"))
+        elif "/releases/download/" in raw_url:
+            candidate_urls.append(raw_url.replace("/releases/download/", "/releases/download/v"))
+
+        for cur_url in candidate_urls:
+            for proxy in GH_PROXIES:
+                label = f"镜像通道 {proxy}" if proxy else "GitHub 官方直连"
+                urls_to_try.append((label, proxy + cur_url if proxy else cur_url))
 
         for label, target_url in urls_to_try:
             digest = hashlib.sha256()
