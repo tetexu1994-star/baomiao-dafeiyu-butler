@@ -325,7 +325,7 @@ class ProcessManager:
     def start_all(self, bot_qq=""):
         with self._lock:
             if self._starting:
-                return False
+                return True
             if self.is_running and self._process_is_alive(self.astrbot_proc) and self._process_is_alive(self.napcat_proc):
                 if self.last_qr and self.qr_callback:
                     self.qr_callback({"type": "base64", "data": self.last_qr})

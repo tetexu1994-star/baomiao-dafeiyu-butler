@@ -281,6 +281,8 @@ function renderQrCode(qrData) {
   placeholder.style.display = "none";
 }
 
+let isStartingServices = false;
+
 async function checkServiceStatus() {
   try {
     const res = await fetch("/api/service/status");
@@ -299,7 +301,7 @@ async function checkServiceStatus() {
       return;
     }
 
-    if (currentStep === 3 && !data.running) {
+    if (currentStep === 3 && !data.running && !isStartingServices) {
       startServices();
     }
   } catch (_) {}
@@ -344,6 +346,8 @@ async function relogin() {
 }
 
 async function startServices() {
+  if (isStartingServices) return;
+  isStartingServices = true;
   document.getElementById("service-status").textContent = "正在启动服务…";
   const placeholder = document.getElementById("qr-placeholder");
   if (placeholder) {
@@ -369,6 +373,8 @@ async function startServices() {
   } catch (err) {
     document.getElementById("service-status").textContent = "启动失败";
     appendLog("[系统] 启动失败: " + err.message);
+  } finally {
+    isStartingServices = false;
   }
 }
 
