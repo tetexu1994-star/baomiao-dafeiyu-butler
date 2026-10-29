@@ -16,7 +16,7 @@ if sys.platform.startswith("win"):
 
 def build():
     print("==================================================")
-    print(" 开始打包 [一键安装.exe] ...")
+    print(" 开始打包 [大肥鱼一键接入QQ.exe] ...")
     print("==================================================")
 
     print("[提示] 正在安装打包依赖...")
@@ -35,7 +35,7 @@ def build():
 
     cmd = [
         sys.executable, "-m", "PyInstaller",
-        "--name=一键安装",
+        "--name=大肥鱼一键接入QQ",
         "--onefile",
         "--clean",
         "--windowed",
@@ -49,7 +49,7 @@ def build():
     
     print("\n==================================================")
     print("🎉 打包完成！")
-    print(f"生成的单文件程序位于: {os.path.join(base_dir, 'dist', '一键安装.exe')}")
+    print(f"生成的单文件程序位于: {os.path.join(base_dir, 'dist', '大肥鱼一键接入QQ.exe')}")
     print("==================================================")
 
 if __name__ == "__main__":

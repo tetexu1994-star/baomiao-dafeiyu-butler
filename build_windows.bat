@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 echo ==================================================
-echo       一键安装 · Windows 自动化编译脚本
+echo       大肥鱼一键接入QQ · Windows 自动化编译脚本
 echo ==================================================
 echo.
 
@@ -19,5 +19,5 @@ echo [2/2] 开始编译单文件 exe...
 python build_exe.py
 
 echo.
-echo 编译完成！程序已生成至 dist\一键安装.exe
+echo 编译完成！程序已生成至 dist\大肥鱼一键接入QQ.exe
 pause

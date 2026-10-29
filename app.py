@@ -383,9 +383,9 @@ def main():
 
     if use_webview:
         try:
-            print("[一键安装] 正在唤起原生桌面窗口...")
+            print("[大肥鱼一键接入QQ] 正在唤起原生桌面窗口...")
             window = webview.create_window(
-                title="一键安装",
+                title="大肥鱼一键接入QQ",
                 url=url,
                 width=980,
                 height=720,
@@ -396,7 +396,7 @@ def main():
             if process_mgr:
                 process_mgr.stop_all()
             server.shutdown()
-            print("[系统] 原生窗口已关闭，一键安装工具安全退出。")
+            print("[系统] 原生窗口已关闭，大肥鱼一键接入工具安全退出。")
             return
         except Exception as e:
             print(f"[提示] 原生窗口拉起失败，回退至浏览器: {e}")
@@ -406,7 +406,7 @@ def main():
     webbrowser.open(url)
 
     print("==================================================")
-    print(" [一键安装] 已在桌面浏览器运行")
+    print(" [大肥鱼一键接入QQ] 已在桌面浏览器运行")
     print(" 如未自动弹出窗口，请手动访问: " + url)
     print(" 按 Ctrl + C 可退出服务")
     print("==================================================")

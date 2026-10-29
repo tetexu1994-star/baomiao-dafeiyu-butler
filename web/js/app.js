@@ -78,7 +78,7 @@ async function goToStep(step) {
       const el = document.getElementById("baomiao_api_key");
       inputKey = el ? el.value.trim() : "";
       if (!inputKey && !currentConfig.api_key_set) {
-        alert("请填写暴喵专属 API Key！\n\n💡 若未持有，请点击卡片中的【免费下载暴喵 AI 管家】领取专属算力包。");
+        alert("请填写暴喵专属 API Key / Token！\n\n💡 若未持有，请点击卡片中的【下载暴喵 AI 管家免费领额度】一键领取专属算力包。");
         return;
       }
     } else {
