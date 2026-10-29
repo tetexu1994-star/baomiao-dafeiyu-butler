@@ -69,6 +69,12 @@ async function loadConfig() {
   }
 }
 
+function openExternalUrl(url = "https://ai.baomiao.cn/") {
+  fetch("/api/open_browser?url=" + encodeURIComponent(url)).catch(() => {
+    window.open(url, "_blank");
+  });
+}
+
 function selectProvider(provider) {
   currentConfig.api_provider = provider;
   document.querySelectorAll(".provider-card, .provider-choice, .provider-option, .deck-option, .provider-radio-card").forEach(el => {
@@ -77,15 +83,18 @@ function selectProvider(provider) {
   
   const baomiaoContainer = document.getElementById("baomiao-key-container");
   const deepseekContainer = document.getElementById("deepseek-key-container");
+  const baomiaoKeyHint = document.getElementById("baomiao-key-hint");
   
   if (provider === "baomiao") {
     currentConfig.api_base = "https://api.baomiao.com/v1";
     if (baomiaoContainer) baomiaoContainer.style.display = "block";
     if (deepseekContainer) deepseekContainer.style.display = "none";
+    if (baomiaoKeyHint) baomiaoKeyHint.style.display = "flex";
   } else {
     currentConfig.api_base = "https://api.deepseek.com/v1";
     if (baomiaoContainer) baomiaoContainer.style.display = "none";
     if (deepseekContainer) deepseekContainer.style.display = "block";
+    if (baomiaoKeyHint) baomiaoKeyHint.style.display = "none";
   }
 }
 

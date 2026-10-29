@@ -12,7 +12,7 @@ import threading
 import time
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 # 确保在 Windows 控制台 (GBK / CP936) 下不会因 emoji 导致 UnicodeEncodeError 崩溃
 if sys.platform.startswith("win"):
@@ -242,6 +242,16 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
         elif parsed.path == "/api/qrcode":
             qr_data = process_mgr.last_qr if process_mgr else None
             self._send_json({"success": bool(qr_data), "data": qr_data or ""})
+        elif parsed.path == "/api/open_browser":
+            query = parse_qs(parsed.query)
+            target_url = query.get("url", ["https://ai.baomiao.cn/"])[0]
+            if target_url.startswith("https://") or target_url.startswith("http://"):
+                try:
+                    import webbrowser
+                    webbrowser.open(target_url)
+                except Exception:
+                    pass
+            self._send_json({"success": True})
         elif parsed.path == "/api/service/status":
             is_connected = bool(process_mgr and (process_mgr.is_logged_in or process_mgr.is_onebot_connected()))
             has_qr = bool(process_mgr and process_mgr.last_qr)

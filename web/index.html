@@ -26,6 +26,9 @@
       </div>
 
       <div class="header-status-tray">
+        <button class="btn-text-nav highlight-gift" onclick="openExternalUrl('https://ai.baomiao.cn/')" title="下载暴喵 AI 管家 · 免费领额度">
+          🎁 免费领额度
+        </button>
         <div class="system-status-indicator">
           <span class="ping-dot"></span>
           <span id="service-status">本机模式</span>
@@ -147,7 +150,7 @@
                   <div class="radio-dot"></div>
                   <div class="radio-info">
                     <span class="radio-name">暴喵 API</span>
-                    <span class="radio-desc">推荐 · 请求地址已配置</span>
+                    <span class="radio-desc">送免费额度 · 开启养成</span>
                   </div>
                 </div>
                 <div class="provider-radio-card" data-provider="deepseek" onclick="selectProvider('deepseek')">
@@ -169,7 +172,7 @@
               
               <!-- 暴喵 Key 输入框 -->
               <div class="input-glow-box with-action" id="baomiao-key-container">
-                <input type="password" id="baomiao_api_key" placeholder="如果后台发放了密钥，再粘贴到这里" autocomplete="off">
+                <input type="password" id="baomiao_api_key" placeholder="可留空，或填入暴喵 API Key" autocomplete="off">
                 <button type="button" class="btn-input-icon" onclick="toggleBaomiaoKeyVisibility()" title="切换明文">显示</button>
               </div>
 
@@ -179,7 +182,11 @@
                 <button type="button" class="btn-input-icon" onclick="toggleKeyVisibility()" title="切换明文">显示</button>
               </div>
 
-              <p class="block-hint">暴喵请求地址已自动配置；只有接口要求鉴权时才需要填写密钥。</p>
+              <!-- 暴喵下载与免费额度简明引导 -->
+              <div class="key-guide-line" id="baomiao-key-hint">
+                <span class="guide-text">💡 API Key 可以在暴喵 AI 管家获取（送免费额度开启养成）：</span>
+                <button type="button" class="btn-link-download" onclick="openExternalUrl('https://ai.baomiao.cn/')">下载暴喵 AI 管家 &gt;</button>
+              </div>
             </div>
 
             <!-- 白名单安全模式 -->
