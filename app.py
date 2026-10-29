@@ -130,8 +130,8 @@ def on_process_log(data):
 def on_qr_event(data):
     if data.get("type") in ("base64", "url"):
         broadcast_event({"type": "qr", "data": data.get("data")})
-    elif data.get("status") == "success":
-        broadcast_event({"type": "login_success"})
+    elif data.get("status") in ("success", "qq_logged_in"):
+        broadcast_event({"type": "login_success", "message": data.get("message", "")})
     elif data.get("status") == "failed":
         broadcast_event({"type": "service_error", "message": data.get("message", "")})
 

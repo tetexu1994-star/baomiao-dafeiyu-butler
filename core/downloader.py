@@ -486,24 +486,61 @@ class ComponentDownloader:
                     self._run([venv_python, "-m", "ensurepip", "--default-pip"])
 
             pip_mirrors = [
-                ("清华大学开源镜像", "https://pypi.tuna.tsinghua.edu.cn/simple", "pypi.tuna.tsinghua.edu.cn"),
                 ("阿里云开源镜像", "https://mirrors.aliyun.com/pypi/simple/", "mirrors.aliyun.com"),
+                ("清华大学开源镜像", "https://pypi.tuna.tsinghua.edu.cn/simple", "pypi.tuna.tsinghua.edu.cn"),
                 ("华为云开源镜像", "https://repo.huaweicloud.com/repository/pypi/simple", "repo.huaweicloud.com"),
             ]
             install_success = False
             for label, index_url, host in pip_mirrors:
-                self.log(f"正在从【{label}】极速安装 AstrBot {ASTRBOT_VERSION} 核心引擎...", 65)
+                self.log(f"正在从【{label}】极速安装 AstrBot {ASTRBOT_VERSION} 核心引擎及 AI 依赖（初次装配需拉取预编译依赖，后续 0 秒跳过）...", 65)
                 cmd = [
                     venv_python, "-m", "pip", "install", "--no-input",
+                    "--prefer-binary", "--no-warn-script-location",
                     "-i", index_url, "--trusted-host", host,
                     f"AstrBot=={ASTRBOT_VERSION}"
                 ]
-                res = self._run(cmd)
-                if res.returncode == 0:
-                    if self._run([venv_python, "-c", "import astrbot"]).returncode == 0:
-                        install_success = True
-                        break
-                self.log(f"【{label}】安装遇到网络波动，正在切换备用源...")
+                kwargs = {}
+                if sys.platform.startswith("win"):
+                    si = subprocess.STARTUPINFO()
+                    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    si.wShowWindow = 0
+                    kwargs["startupinfo"] = si
+                    kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+                try:
+                    proc = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        encoding="utf-8",
+                        errors="ignore",
+                        bufsize=1,
+                        **kwargs
+                    )
+                    curr_pct = 65
+                    for line in iter(proc.stdout.readline, ""):
+                        if not line:
+                            break
+                        line_str = line.strip()
+                        if not line_str:
+                            continue
+                        if "Collecting" in line_str:
+                            parts = line_str.split()
+                            pkg = parts[1] if len(parts) > 1 else ""
+                            curr_pct = min(curr_pct + 1, 80)
+                            self.log(f"📦 正在拉取依赖库: {pkg}", curr_pct)
+                        elif "Installing collected packages" in line_str:
+                            self.log("⚡ 正在完成 AI 依赖库装配与环境配置...", 82)
+                        elif "Successfully installed" in line_str:
+                            self.log(f"✅ AstrBot 核心引擎及 AI 依赖库全部就绪！", 85)
+                    proc.wait(timeout=900)
+                    if proc.returncode == 0:
+                        if self._run([venv_python, "-c", "import astrbot"]).returncode == 0:
+                            install_success = True
+                            break
+                except Exception as pip_err:
+                    self.log(f"【{label}】安装过程遇到波动: {pip_err}")
+                self.log(f"【{label}】正在切换备用镜像源...")
             if not install_success:
                 raise RuntimeError(f"安装 AstrBot 核心引擎失败，请检查网络连接")
 

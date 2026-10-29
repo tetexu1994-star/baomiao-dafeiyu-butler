@@ -449,13 +449,47 @@ async function startInstallation() {
 
 let qrPollingTimer = null;
 
+function updateHeaderStatus(type, text) {
+  const badge = document.getElementById("system-status-badge");
+  const dot = document.getElementById("system-ping-dot");
+  const label = document.getElementById("service-status");
+  if (!label) return;
+  if (text) label.textContent = text;
+  if (!badge || !dot) return;
+
+  if (type === "ready") {
+    badge.style.background = "rgba(16, 185, 129, 0.15)";
+    badge.style.borderColor = "rgba(16, 185, 129, 0.35)";
+    badge.style.color = "#34d399";
+    dot.style.background = "#10b981";
+    dot.style.boxShadow = "0 0 8px #10b981";
+  } else if (type === "warming") {
+    badge.style.background = "rgba(245, 158, 11, 0.15)";
+    badge.style.borderColor = "rgba(245, 158, 11, 0.35)";
+    badge.style.color = "#f59e0b";
+    dot.style.background = "#f59e0b";
+    dot.style.boxShadow = "0 0 8px #f59e0b";
+  } else if (type === "error") {
+    badge.style.background = "rgba(239, 68, 68, 0.15)";
+    badge.style.borderColor = "rgba(239, 68, 68, 0.35)";
+    badge.style.color = "#f87171";
+    dot.style.background = "#ef4444";
+    dot.style.boxShadow = "0 0 8px #ef4444";
+  } else {
+    badge.style.background = "rgba(56, 189, 248, 0.15)";
+    badge.style.borderColor = "rgba(56, 189, 248, 0.35)";
+    badge.style.color = "#38bdf8";
+    dot.style.background = "#38bdf8";
+    dot.style.boxShadow = "0 0 8px #38bdf8";
+  }
+}
+
 function setLoginSuccessUI() {
   stopQrPolling();
   const placeholder = document.getElementById("qr-placeholder");
   const qrImg = document.getElementById("qr-image");
   const qrBox = document.getElementById("qr-box");
   const banner = document.getElementById("success-banner");
-  const status = document.getElementById("service-status");
   const radarTag = document.querySelector(".qr-radar-tag");
 
   if (qrBox) {
@@ -474,15 +508,15 @@ function setLoginSuccessUI() {
         <img src="img/dafeiyu_chibi.png" alt="暴喵大肥鱼" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(245, 158, 11, 0.35));">
         <span style="position: absolute; bottom: 2px; right: 8px; width: 12px; height: 12px; background: #f59e0b; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 0 6px #f59e0b;"></span>
       </div>
-      <p style="color: #f59e0b; font-weight: 700; font-size: 15px; margin: 0 0 3px 0; white-space: nowrap; text-align: center; letter-spacing: 0.5px;">QQ 已登录 · 正在连接大模型</p>
-      <p style="color: #64748b; font-size: 11.5px; margin: 0; white-space: nowrap; text-align: center;">通道自检中，真正就绪后即可畅聊</p>
+      <p style="color: #f59e0b; font-weight: 700; font-size: 15px; margin: 0 0 3px 0; white-space: nowrap; text-align: center; letter-spacing: 0.5px;">QQ 已扫码成功 · 正在连接大模型</p>
+      <p style="color: #64748b; font-size: 11.5px; margin: 0; white-space: nowrap; text-align: center;">正在进行模型握手自检（约需 3~5 秒），就绪后即可畅聊</p>
     `;
   }
   if (qrImg) qrImg.style.display = "none";
-  if (banner) banner.style.display = "flex";
-  if (status) status.textContent = "正在连通大模型…";
+  if (banner) banner.style.display = "none";
+  updateHeaderStatus("warming", "正在连通大模型…");
   if (radarTag) {
-    radarTag.innerHTML = '<span class="radar-ping" style="background: #f59e0b;"></span><span style="color: #f59e0b; font-weight: 600;">大肥鱼状态：QQ已登录，正在连通大模型...</span>';
+    radarTag.innerHTML = '<span class="radar-ping" style="background: #f59e0b;"></span><span style="color: #f59e0b; font-weight: 600;">大肥鱼状态：QQ已登录，正在连通大模型(约3秒)...</span>';
   }
 }
 
@@ -490,7 +524,6 @@ function setChatReadyUI() {
   const qrImg = document.getElementById("qr-image");
   const placeholder = document.getElementById("qr-placeholder");
   const banner = document.getElementById("success-banner");
-  const status = document.getElementById("service-status");
   const radarTag = document.querySelector(".qr-radar-tag");
 
   if (placeholder) {
@@ -511,7 +544,7 @@ function setChatReadyUI() {
   }
   if (qrImg) qrImg.style.display = "none";
   if (banner) banner.style.display = "flex";
-  if (status) status.textContent = "大肥鱼已就绪·可开始对话";
+  updateHeaderStatus("ready", "大肥鱼已就绪·可开始对话");
   if (radarTag) {
     radarTag.innerHTML = '<span class="radar-ping" style="background: #10b981;"></span><span style="color: #10b981; font-weight: 600;">大肥鱼状态：在线服务中（已具备对话能力）</span>';
   }
@@ -550,6 +583,7 @@ function renderQrCode(qrData) {
   qrImg.style.display = "block";
   placeholder.style.display = "none";
   if (banner) banner.style.display = "none";
+  updateHeaderStatus("waiting", "等待手机 QQ 扫码");
   if (radarTag) {
     radarTag.innerHTML = '<span class="radar-ping"></span><span>等待手机 QQ 扫码确认</span>';
   }
@@ -644,7 +678,7 @@ async function startServices() {
   if (isStartingServices) return;
   isStartingServices = true;
   stoppedByUser = false;
-  document.getElementById("service-status").textContent = "正在启动服务…";
+  updateHeaderStatus("normal", "正在启动服务…");
   const placeholder = document.getElementById("qr-placeholder");
   if (placeholder) {
     placeholder.style.display = "flex";
@@ -663,10 +697,9 @@ async function startServices() {
     if (!ok || !data.success) {
       throw new Error(data.message || "服务启动失败");
     }
-    document.getElementById("service-status").textContent = "服务运行中";
     checkServiceStatus();
   } catch (err) {
-    document.getElementById("service-status").textContent = "启动失败";
+    updateHeaderStatus("error", "启动失败");
     appendLog("[系统] 启动失败: " + err.message);
   } finally {
     isStartingServices = false;
@@ -688,7 +721,7 @@ async function stopServices() {
       headers: { "Content-Type": "application/json" },
       body: "{}"
     });
-    document.getElementById("service-status").textContent = "已停止";
+    updateHeaderStatus("normal", "已停止");
     document.getElementById("qr-image").style.display = "none";
     const placeholder = document.getElementById("qr-placeholder");
     if (placeholder) {
@@ -720,16 +753,14 @@ function initEventStream() {
         setChatReadyUI();
         appendLog("🚀 [系统] " + (payload.message || "大模型自检通过，大肥鱼现已真正就绪，可以在 QQ 发送消息开始对话啦！"));
       } else if (payload.type === "service_error") {
-        const statusEl = document.getElementById("service-status");
-        if (statusEl) statusEl.textContent = "启动异常";
+        updateHeaderStatus("error", "启动异常");
         appendLog("[系统] 服务启动异常: " + (payload.message || ""));
       } else if (payload.type === "llm_test") {
         if (payload.success) {
           setChatReadyUI();
           appendLog("✅ [系统] " + (payload.message || "大模型通道连通正常"));
         } else {
-          const statusEl = document.getElementById("service-status");
-          if (statusEl) statusEl.textContent = "大模型连通异常";
+          updateHeaderStatus("error", "大模型连通异常");
           appendLog("❌ [系统] " + (payload.message || "大模型通道检测未通过，请检查 API Key 或网络"));
         }
       }

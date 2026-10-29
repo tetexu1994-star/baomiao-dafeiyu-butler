@@ -164,21 +164,23 @@ body {
   display: flex;
   align-items: center;
   gap: 7px;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
   padding: 5px 14px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
-  color: #34d399;
+  color: #38bdf8;
+  transition: all 0.3s ease;
 }
 
 .ping-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--emerald-accent);
-  box-shadow: 0 0 8px var(--emerald-accent);
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  transition: all 0.3s ease;
 }
 
 .btn-text-nav {
