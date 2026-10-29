@@ -63,6 +63,20 @@ def _upsert_by_id(items, item):
     return result
 
 
+def _persona_prompt():
+    """返回注入了当前好感度状态的 persona prompt（QQ 侧持久化锚点）"""
+    try:
+        from .affinity import load_affinity, affinity_level
+        score = load_affinity()
+        return (
+            DAFEIYU_PROMPT_V36
+            + f"\n\n【当前好感度状态锚点】系统当前记录：主人好感度 {score} 分（{affinity_level(score)}）。"
+            + "请以该数值为基准作答，不要凭空重置或大幅偏离。"
+        )
+    except Exception:
+        return DAFEIYU_PROMPT_V36
+
+
 def build_astrbot_config(existing, user_config):
     config = copy.deepcopy(existing)
     master_qq = str(user_config.get("master_qq", "")).strip()
@@ -147,7 +161,7 @@ def build_astrbot_config(existing, user_config):
     config["persona"] = [
         {
             "name": DAFEIYU_PERSONA_ID,
-            "prompt": DAFEIYU_PROMPT_V36,
+            "prompt": _persona_prompt(),
             "begin_dialogs": [],
             "mood_imitation_dialogs": [],
         }
@@ -180,6 +194,7 @@ def inject_astrbot_persona(install_dir):
     # 1. 直接更新 SQLite 数据库中的 default 和 dafeiyu_v36，彻底保证对话时人设100%生效
     import datetime
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")
+    prompt = _persona_prompt()
     db_paths = [
         os.path.join(install_dir, "AstrBot", "data", "data_v4.db"),
         os.path.join(os.path.expanduser("~"), "data", "data_v4.db"),
@@ -190,15 +205,15 @@ def inject_astrbot_persona(install_dir):
                 import sqlite3
                 conn = sqlite3.connect(db_path)
                 cur = conn.cursor()
-                cur.execute("UPDATE personas SET system_prompt = ?, updated_at = ? WHERE persona_id = 'default'", (DAFEIYU_PROMPT_V36, now))
+                cur.execute("UPDATE personas SET system_prompt = ?, updated_at = ? WHERE persona_id = 'default'", (prompt, now))
                 row = cur.execute("SELECT id FROM personas WHERE persona_id = 'dafeiyu_v36'").fetchone()
                 if row:
-                    cur.execute("UPDATE personas SET system_prompt = ?, updated_at = ? WHERE persona_id = 'dafeiyu_v36'", (DAFEIYU_PROMPT_V36, now))
+                    cur.execute("UPDATE personas SET system_prompt = ?, updated_at = ? WHERE persona_id = 'dafeiyu_v36'", (prompt, now))
                 else:
                     cur.execute("""
                         INSERT INTO personas (created_at, updated_at, persona_id, system_prompt, begin_dialogs, tools, skills, sort_order)
                         VALUES (?, ?, 'dafeiyu_v36', ?, '[]', 'null', 'null', 0)
-                    """, (now, now, DAFEIYU_PROMPT_V36))
+                    """, (now, now, prompt))
                 conn.commit()
                 conn.close()
             except Exception:
@@ -210,7 +225,7 @@ def inject_astrbot_persona(install_dir):
     env = os.environ.copy()
     env["ASTRBOT_ROOT"] = os.path.join(install_dir, "AstrBot")
     env["BAOMIAO_PERSONA_ID"] = DAFEIYU_PERSONA_ID
-    env["BAOMIAO_PERSONA_PROMPT"] = DAFEIYU_PROMPT_V36
+    env["BAOMIAO_PERSONA_PROMPT"] = prompt
     subprocess.run(
         [python_path, "-c", _PERSONA_BOOTSTRAP],
         cwd=env["ASTRBOT_ROOT"],

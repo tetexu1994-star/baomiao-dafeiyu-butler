@@ -20,6 +20,7 @@ except ImportError:
 
 from core.config import load_user_config
 from core.persona import DAFEIYU_PROMPT_MAX
+from core import affinity
 
 PET_HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "pet.html")
 
@@ -30,7 +31,7 @@ class DesktopPetAPI:
         self.config = load_user_config()
         self.chat_history = []
         self.mode = "loli"  # loli / elder / battle
-        self.affinity = 100
+        self.affinity = affinity.load_affinity()
 
     def set_window(self, window):
         self.window = window
@@ -40,15 +41,17 @@ class DesktopPetAPI:
         return {
             "mode": self.mode,
             "affinity": self.affinity,
+            "level": affinity.affinity_level(self.affinity),
             "has_api_key": bool(self.config.get("api_key", "").strip()) and self.config.get("api_key", "").strip() != "bm-free-token",
             "master_qq": self.config.get("master_qq", ""),
         }
 
     def feed_food(self):
-        self.affinity += 10
+        self.affinity = affinity.add_affinity(10)
         return {
             "success": True,
             "affinity": self.affinity,
+            "level": affinity.affinity_level(self.affinity),
             "reply": "嗷呜！大白饭真香～(鼓起腮帮子嚼嚼) 谢谢主人投喂，好感度 +10 喵！🍚✨"
         }
 
@@ -80,7 +83,7 @@ class DesktopPetAPI:
         if "投喂" in user_text or user_text == "🍚":
             return self.feed_food()
         if "好感" in user_text:
-            return {"reply": f"当前好感度为 【{self.affinity} 点】！大肥鱼正全力守护主人喵～✨"}
+            return {"reply": f"当前好感度为 【{self.affinity} 点 · {affinity.affinity_level(self.affinity)}】！大肥鱼正全力守护主人喵～✨"}
 
         self.config = load_user_config()
         api_key = self.config.get("api_key", "").strip()
@@ -126,8 +129,8 @@ class DesktopPetAPI:
                 if reply_content.startswith("✦") and "✦" in reply_content[1:]:
                     reply_content = reply_content.split("✦", 2)[-1].strip()
                 self.chat_history.append({"role": "assistant", "content": reply_content})
-                self.affinity += 2
-                return {"reply": reply_content, "affinity": self.affinity}
+                self.affinity = affinity.add_affinity(2)
+                return {"reply": reply_content, "affinity": self.affinity, "level": affinity.affinity_level(self.affinity)}
 
         except Exception as exc:
             return {"reply": f"呜…网络开小差了喵：{exc}"}
