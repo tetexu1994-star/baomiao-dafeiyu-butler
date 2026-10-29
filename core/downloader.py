@@ -146,9 +146,23 @@ class ComponentDownloader:
     @staticmethod
     def _find_astrbot_command(install_dir):
         astrbot_dir = os.path.join(install_dir, "AstrBot")
-        candidates = [
+        # 1. 优先检查已经就绪并包含 astrbot 模块的 Python 解释器
+        py_candidates = [
+            os.path.join(astrbot_dir, ".venv", "python.exe"),
             os.path.join(astrbot_dir, ".venv", "Scripts", "python.exe"),
             os.path.join(astrbot_dir, ".venv", "bin", "python"),
+        ]
+        for p in py_candidates:
+            if os.path.isfile(p):
+                try:
+                    res = subprocess.run([p, "-c", "import astrbot"], capture_output=True, timeout=5)
+                    if res.returncode == 0:
+                        return p
+                except Exception:
+                    pass
+
+        # 2. 检查原生 astrbot.exe
+        exe_candidates = [
             os.path.join(astrbot_dir, "runtime", "Scripts", "astrbot.exe"),
             os.path.join(astrbot_dir, "Scripts", "astrbot.exe"),
             os.path.join(astrbot_dir, "AstrBot.exe"),
@@ -158,11 +172,22 @@ class ComponentDownloader:
             os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python312\Scripts\astrbot.exe"),
             r"C:\Python312\Scripts\astrbot.exe",
         ]
-        for p in candidates:
-            if os.path.exists(p):
-                return p
+        for p in exe_candidates:
+            if os.path.isfile(p):
+                try:
+                    res = subprocess.run([p, "--version"], capture_output=True, timeout=5)
+                    if res.returncode == 0:
+                        return p
+                except Exception:
+                    pass
+
         if shutil.which("astrbot"):
-            return shutil.which("astrbot")
+            try:
+                res = subprocess.run([shutil.which("astrbot"), "--version"], capture_output=True, timeout=5)
+                if res.returncode == 0:
+                    return shutil.which("astrbot")
+            except Exception:
+                pass
         return None
 
     def _python_command(self):
@@ -447,17 +472,26 @@ class ComponentDownloader:
 
         result = self._run([venv_python, "-c", "import astrbot"])
         if result.returncode != 0:
-            self.log(f"正在从国内镜像源安装 AstrBot {ASTRBOT_VERSION}...")
-            result = self._run(
-                [
+            pip_mirrors = [
+                ("清华大学开源镜像", "https://pypi.tuna.tsinghua.edu.cn/simple", "pypi.tuna.tsinghua.edu.cn"),
+                ("阿里云开源镜像", "https://mirrors.aliyun.com/pypi/simple/", "mirrors.aliyun.com"),
+                ("华为云开源镜像", "https://repo.huaweicloud.com/repository/pypi/simple", "repo.huaweicloud.com"),
+            ]
+            install_success = False
+            for label, index_url, host in pip_mirrors:
+                self.log(f"正在从【{label}】极速安装 AstrBot {ASTRBOT_VERSION} 核心引擎...", 65)
+                cmd = [
                     venv_python, "-m", "pip", "install", "--no-input",
-                    "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
-                    "--trusted-host", "pypi.tuna.tsinghua.edu.cn",
+                    "-i", index_url, "--trusted-host", host,
                     f"AstrBot=={ASTRBOT_VERSION}"
                 ]
-            )
-            if result.returncode != 0:
-                raise RuntimeError(f"安装 AstrBot 失败: {result.stdout[-800:]}")
+                res = self._run(cmd)
+                if res.returncode == 0:
+                    install_success = True
+                    break
+                self.log(f"【{label}】安装遇到网络波动，正在切换备用源...")
+            if not install_success:
+                raise RuntimeError(f"安装 AstrBot 核心引擎失败，请检查网络连接")
 
         # 自动补全 Windows pywin32 系统依赖与路径
         self.fix_windows_pywin32(venv_dir)

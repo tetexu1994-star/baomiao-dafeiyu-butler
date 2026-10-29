@@ -209,7 +209,22 @@ class ProcessManager:
 
     def _astrbot_command(self):
         astrbot_dir = os.path.join(self.install_dir, "AstrBot")
-        candidates = [
+        # 1. 优先检查虚拟环境中的 Python，并严格验证 import astrbot 成功
+        py_candidates = [
+            os.path.join(astrbot_dir, ".venv", "python.exe"),
+            os.path.join(astrbot_dir, ".venv", "Scripts" if sys.platform.startswith("win") else "bin", "python.exe" if sys.platform.startswith("win") else "python"),
+        ]
+        for p in py_candidates:
+            if os.path.isfile(p):
+                try:
+                    res = subprocess.run([p, "-c", "import astrbot"], capture_output=True, timeout=5)
+                    if res.returncode == 0:
+                        return [p, "-m", "astrbot.cli", "run"], astrbot_dir
+                except Exception:
+                    pass
+
+        # 2. 检查原生 astrbot.exe
+        exe_candidates = [
             os.path.join(astrbot_dir, "runtime", "Scripts", "astrbot.exe"),
             os.path.join(astrbot_dir, "Scripts", "astrbot.exe"),
             os.path.join(astrbot_dir, "AstrBot.exe"),
@@ -219,22 +234,14 @@ class ProcessManager:
             os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python312\Scripts\astrbot.exe"),
             r"C:\Python312\Scripts\astrbot.exe",
         ]
-        for p in candidates:
+        for p in exe_candidates:
             if os.path.isfile(p):
-                return [p, "run"], astrbot_dir
-
-        venv_python_root = os.path.join(astrbot_dir, ".venv", "python.exe")
-        if os.path.isfile(venv_python_root):
-            return [venv_python_root, "-m", "astrbot.cli", "run"], astrbot_dir
-
-        venv_python = os.path.join(
-            astrbot_dir,
-            ".venv",
-            "Scripts" if sys.platform.startswith("win") else "bin",
-            "python.exe" if sys.platform.startswith("win") else "python",
-        )
-        if os.path.isfile(venv_python):
-            return [venv_python, "-m", "astrbot.cli", "run"], astrbot_dir
+                try:
+                    res = subprocess.run([p, "--version"], capture_output=True, timeout=5)
+                    if res.returncode == 0:
+                        return [p, "run"], astrbot_dir
+                except Exception:
+                    pass
 
         which_astr = shutil.which("astrbot")
         if which_astr:
@@ -244,12 +251,26 @@ class ProcessManager:
             target = os.path.join(astrbot_dir, name)
             if os.path.exists(target):
                 return [sys.executable, target], astrbot_dir
-        return [sys.executable, "-m", "astrbot.cli", "run"], astrbot_dir
+        return None, astrbot_dir
 
     def start_astrbot(self):
         if self._process_is_alive(self.astrbot_proc):
             return True
         cmd, cwd = self._astrbot_command()
+        if not cmd:
+            self.log("AstrBot", "🚀 检测到 AstrBot 核心引擎尚未安装，正在全自动拉取装配...")
+            try:
+                from .downloader import ComponentDownloader
+                downloader = ComponentDownloader(self.install_dir, status_callback=lambda s: self.log("下载部署", s.get("message", "")))
+                downloader.install_astrbot()
+            except Exception as e:
+                self.log("AstrBot", f"❌ 自动装配 AstrBot 失败: {e}")
+                return False
+            cmd, cwd = self._astrbot_command()
+            if not cmd:
+                self.log("AstrBot", "❌ 未找到就绪的 AstrBot 引擎，请检查网络后重试")
+                return False
+
         try:
             # 针对 Windows 嵌入式/沙箱 Python 环境，彻底注入 pywintypes/pythoncom 完整依赖
             try:
