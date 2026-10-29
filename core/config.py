@@ -17,7 +17,7 @@ DEFAULT_CONFIG = {
     "astrbot_port": 6185,
     "auto_launch": True,
     "enable_tts": False,
-    "whitelist_only": True,
+    "whitelist_only": False,
 }
 
 ALLOWED_CONFIG_KEYS = frozenset(DEFAULT_CONFIG)

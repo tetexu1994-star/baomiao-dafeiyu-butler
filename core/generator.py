@@ -106,21 +106,42 @@ def build_astrbot_config(existing, user_config):
     }
 
     config["config_version"] = 5
+    config["wake_prefix"] = []
     config["provider"] = _upsert_by_id(config.get("provider", []), provider)
     config["platform"] = _upsert_by_id(config.get("platform", []), platform)
+
+    # AstrBot 4.x Agent Runner 核心架构绑定（缺少此项会导致 LLM 模型无法调度，无回复）
+    runner = config.setdefault("agent_runner", {})
+    runner["runner_type"] = "local"
+    runner_cfg = runner.setdefault("config", {})
+    model_cfg = runner_cfg.setdefault("model", {})
+    model_cfg["provider_id"] = ASTRBOT_PROVIDER_ID
+    model_cfg["fallback_provider_ids"] = []
+    model_cfg["request_max_retries"] = 5
+
+    persona_cfg = runner_cfg.setdefault("persona", {})
+    persona_cfg["persona_id"] = DAFEIYU_PERSONA_ID
+    persona_cfg["safety_mode"] = False
+
+    comp_cfg = runner_cfg.setdefault("compression", {})
+    comp_cfg["provider_id"] = ASTRBOT_PROVIDER_ID
 
     provider_settings = config.setdefault("provider_settings", {})
     provider_settings["enable"] = True
     provider_settings["default_provider_id"] = ASTRBOT_PROVIDER_ID
     provider_settings["default_personality"] = DAFEIYU_PERSONA_ID
+    provider_settings["wake_prefix"] = ""
 
     platform_settings = config.setdefault("platform_settings", {})
-    platform_settings["enable_id_white_list"] = bool(user_config.get("whitelist_only", True))
+    # 默认关闭白名单拦截，确保用户与机器人无论是私聊还是群聊均能立即得到大肥鱼回复
+    platform_settings["enable_id_white_list"] = bool(user_config.get("whitelist_only", False))
     platform_settings["id_whitelist"] = (
         [f"aiocqhttp:FriendMessage:{master_qq}"] if master_qq else []
     )
     platform_settings["wl_ignore_admin_on_group"] = True
     platform_settings["wl_ignore_admin_on_friend"] = True
+    platform_settings["friend_message_needs_wake_prefix"] = False
+    platform_settings["ignore_bot_self_message"] = False
 
     config["admins_id"] = [master_qq] if master_qq else []
     config["persona"] = [
@@ -157,17 +178,22 @@ def _silent_kwargs():
 
 def inject_astrbot_persona(install_dir):
     # 1. 直接更新 SQLite 数据库中的 default 和 dafeiyu_v36，彻底保证对话时人设100%生效
-    db_path = os.path.join(install_dir, "AstrBot", "data", "data_v4.db")
-    if os.path.isfile(db_path):
-        try:
-            import sqlite3
-            conn = sqlite3.connect(db_path)
-            conn.execute("UPDATE personas SET system_prompt = ? WHERE persona_id = 'default'", (DAFEIYU_PROMPT_V36,))
-            conn.execute("INSERT OR REPLACE INTO personas (persona_id, system_prompt) VALUES (?, ?)", (DAFEIYU_PERSONA_ID, DAFEIYU_PROMPT_V36))
-            conn.commit()
-            conn.close()
-        except Exception:
-            pass
+    db_paths = [
+        os.path.join(install_dir, "AstrBot", "data", "data_v4.db"),
+        os.path.join(os.path.expanduser("~"), "data", "data_v4.db"),
+    ]
+    for db_path in db_paths:
+        if os.path.isfile(db_path):
+            try:
+                import sqlite3
+                conn = sqlite3.connect(db_path)
+                conn.execute("UPDATE personas SET system_prompt = ? WHERE persona_id = 'default'", (DAFEIYU_PROMPT_V36,))
+                conn.execute("INSERT OR REPLACE INTO personas (persona_id, system_prompt) VALUES (?, ?)", (DAFEIYU_PERSONA_ID, DAFEIYU_PROMPT_V36))
+                conn.execute("INSERT OR REPLACE INTO personas (persona_id, system_prompt) VALUES ('default', ?)", (DAFEIYU_PROMPT_V36,))
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass
 
     python_path = _venv_python(install_dir)
     if not os.path.exists(python_path):
@@ -196,6 +222,15 @@ def generate_astrbot_config(install_dir, user_config):
     existing = _read_json(config_file, {})
     config = build_astrbot_config(existing, user_config)
     _write_json(config_file, config)
+
+    # 同步写入外部根目录 data，避免无论哪个路径解析都能100%命中正确模型配置
+    extra_cfg = os.path.join(os.path.expanduser("~"), "data", "cmd_config.json")
+    try:
+        if os.path.isdir(os.path.dirname(extra_cfg)):
+            _write_json(extra_cfg, config)
+    except Exception:
+        pass
+
     inject_astrbot_persona(install_dir)
     return config_file
 
