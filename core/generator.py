@@ -182,6 +182,40 @@ def generate_astrbot_config(install_dir, user_config):
 def build_napcat_config(existing, user_config):
     config = copy.deepcopy(existing)
     onebot_port = int(user_config.get("napcat_port", 6199))
+    ws_url = f"ws://127.0.0.1:{onebot_port}/ws"
+
+    # NapCat 4.x (新网络适配架构)
+    network = config.setdefault("network", {})
+    network.setdefault("httpServers", [])
+    network.setdefault("httpSseServers", [])
+    network.setdefault("httpClients", [])
+    network.setdefault("websocketServers", [])
+    network.setdefault("plugins", [])
+
+    ws_client = {
+        "name": "AstrBot",
+        "enable": True,
+        "url": ws_url,
+        "messagePostFormat": "array",
+        "reportSelfMessage": False,
+        "reconnectInterval": 3000,
+        "token": "",
+        "debug": False,
+        "heartInterval": 30000,
+    }
+
+    ws_clients = network.get("websocketClients", [])
+    found = False
+    for idx, client in enumerate(ws_clients):
+        if isinstance(client, dict) and (client.get("name") == "AstrBot" or str(onebot_port) in client.get("url", "")):
+            ws_clients[idx] = ws_client
+            found = True
+            break
+    if not found:
+        ws_clients.append(ws_client)
+    network["websocketClients"] = ws_clients
+
+    # 兼容 NapCat 2.x/3.x 旧架构
     config["ws"] = {
         "enable": False,
         "host": "127.0.0.1",
@@ -190,10 +224,10 @@ def build_napcat_config(existing, user_config):
     }
     config["reverseWs"] = {
         "enable": True,
-        "urls": [f"ws://127.0.0.1:{onebot_port}/ws"],
+        "urls": [ws_url],
         "messagePostFormat": "array",
         "reportSelfMessage": False,
-        "reconnectInterval": 5000,
+        "reconnectInterval": 3000,
         "heartbeatInterval": 10000,
         "token": "",
     }
