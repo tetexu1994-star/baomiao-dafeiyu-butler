@@ -90,12 +90,20 @@ def build_astrbot_config(existing, user_config):
         api_base = str(user_config.get("api_base") or "https://open-ai.baomiao.cn/v1").strip()
         if not api_key:
             raise ValueError("请填入暴喵专属 API Key（若未持有，可点击下方按钮下载暴喵AI管家免费领取）")
+        model_name = "DeepSeek-V4.1-Flash 1017(1.20x)"
     elif api_provider == "deepseek":
         api_base = str(user_config.get("api_base") or "https://api.deepseek.com/v1").strip()
         if not api_key:
             raise ValueError("DeepSeek API Key 不能为空")
+        model_name = "deepseek-flash"
     else:
         raise ValueError(f"不支持的模型通道: {api_provider}")
+
+    # 兜底保障：若 api_base 指向官方 deepseek.com，强制使用 deepseek-flash；若指向暴喵则用带倍率全名
+    if "deepseek.com" in api_base.lower():
+        model_name = "deepseek-flash"
+    elif "baomiao" in api_base.lower():
+        model_name = "DeepSeek-V4.1-Flash 1017(1.20x)"
 
     provider = {
         "id": ASTRBOT_PROVIDER_ID,

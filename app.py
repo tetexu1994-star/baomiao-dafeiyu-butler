@@ -151,6 +151,15 @@ def test_llm_connection(config):
     if not api_key or api_key == "bm-free-token":
         return False, "未配置有效的 API Key，请填写真实 Key 后重试"
 
+    # 针对官方 deepseek.com 与暴喵网关做严格精准模型绑定
+    if "deepseek.com" in api_base.lower() or provider == "deepseek":
+        model = "deepseek-flash"
+    elif "baomiao" in api_base.lower() or provider == "baomiao":
+        model = "DeepSeek-V4.1-Flash 1017(1.20x)"
+    else:
+        model = str(config.get("model_name") or "deepseek-flash").strip()
+    config["model_name"] = model
+
     url = f"{api_base}/chat/completions"
     payload = json.dumps({
         "model": model,

@@ -176,15 +176,19 @@ function selectProvider(provider) {
   
   if (provider === "baomiao") {
     currentConfig.api_base = "https://open-ai.baomiao.cn/v1";
+    currentConfig.model_name = "DeepSeek-V4.1-Flash 1017(1.20x)";
     if (baomiaoContainer) baomiaoContainer.style.display = "block";
     if (deepseekContainer) deepseekContainer.style.display = "none";
     if (baomiaoKeyHint) baomiaoKeyHint.style.display = "flex";
   } else {
     currentConfig.api_base = "https://api.deepseek.com/v1";
+    currentConfig.model_name = "deepseek-flash";
     if (baomiaoContainer) baomiaoContainer.style.display = "none";
     if (deepseekContainer) deepseekContainer.style.display = "block";
     if (baomiaoKeyHint) baomiaoKeyHint.style.display = "none";
   }
+  const modelInput = document.getElementById("model_name");
+  if (modelInput) modelInput.value = currentConfig.model_name;
   fetchModelsFromApi();
 }
 
@@ -212,38 +216,28 @@ async function fetchModelsFromApi(force = false) {
     });
     const data = await res.json();
     if (data.success && data.models && data.models.length > 0) {
-      // 严格仅展示 Flash 极速模型
-      const flashModels = data.models.filter(m => m.id.toLowerCase().includes("flash") || m.id.includes("1017"));
-      const finalModels = flashModels.length > 0 ? flashModels : data.models;
+      // 根据当前通道（官方 deepseek.com vs 暴喵网关）做绝对精准的模型名过滤
+      let finalModels = [];
+      if (apiBase.includes("deepseek.com") || currentConfig.api_provider === "deepseek") {
+        finalModels = [{"id": "deepseek-flash", "name": "deepseek-flash (官方极速)"}];
+      } else {
+        finalModels = [{"id": "DeepSeek-V4.1-Flash 1017(1.20x)", "name": "DeepSeek-V4.1-Flash 1017(1.20x) (专属极速)"}];
+      }
       select.innerHTML = "";
       finalModels.forEach(m => {
         const opt = document.createElement("option");
         opt.value = m.id;
-        let displayName = m.name || m.id;
-        if (!displayName.includes("极速")) {
-          displayName += " (极速响应)";
-        }
-        opt.textContent = displayName;
+        opt.textContent = m.name || m.id;
         select.appendChild(opt);
       });
 
-      // 选定模型
-      let target = currentConfig.model_name || data.selected || data.models[0].id;
-      const exists = Array.from(select.options).some(o => o.value === target);
-      if (exists) {
-        select.value = target;
-      } else if (data.selected) {
-        select.value = data.selected;
-      } else {
-        select.selectedIndex = 0;
-      }
-
+      select.value = finalModels[0].id;
       currentConfig.model_name = select.value;
       const modelInput = document.getElementById("model_name");
       if (modelInput) modelInput.value = select.value;
 
       if (badge) {
-        badge.textContent = `✅ 已授权 (${data.models.length}个)`;
+        badge.textContent = `✅ 唯一锁定 Flash`;
         badge.style.background = "rgba(16, 185, 129, 0.15)";
         badge.style.color = "#34d399";
         badge.style.borderColor = "rgba(16, 185, 129, 0.3)";
