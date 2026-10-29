@@ -41,11 +41,11 @@ class ProcessManager:
 
     def is_onebot_connected(self):
         """检查 NapCat 与 AstrBot 之间的 OneBot 11 反向 WebSocket 是否处于已连接状态（纯静默模式）"""
-        if self.is_logged_in:
-            return True
         try:
             out = subprocess.check_output(
                 ["netstat", "-ano"],
+                text=True,
+                encoding="utf-8",
                 errors="ignore",
                 **_silent_kwargs()
             )
@@ -170,6 +170,10 @@ class ProcessManager:
             if os.path.isfile(p):
                 return [p, "run"], astrbot_dir
 
+        venv_python_root = os.path.join(astrbot_dir, ".venv", "python.exe")
+        if os.path.exists(venv_python_root):
+            return [venv_python_root, "-m", "astrbot.cli", "run"], astrbot_dir
+
         venv_python = os.path.join(
             astrbot_dir,
             ".venv",
@@ -194,6 +198,20 @@ class ProcessManager:
             return True
         cmd, cwd = self._astrbot_command()
         try:
+            # 针对 Windows 嵌入式 Python 环境，自动补全 pywintypes/pythoncom 运行库依赖
+            try:
+                astrbot_dir = os.path.join(self.install_dir, "AstrBot")
+                venv_dir = os.path.join(astrbot_dir, ".venv")
+                pywin_sys = os.path.join(venv_dir, "Lib", "site-packages", "pywin32_system32")
+                if os.path.isdir(pywin_sys) and os.path.isdir(venv_dir):
+                    for dll_name in ("pywintypes312.dll", "pythoncom312.dll"):
+                        src_f = os.path.join(pywin_sys, dll_name)
+                        dst_f = os.path.join(venv_dir, dll_name)
+                        if os.path.isfile(src_f) and not os.path.isfile(dst_f):
+                            shutil.copy2(src_f, dst_f)
+            except Exception:
+                pass
+
             self.log("AstrBot", "正在启动 AstrBot 服务...")
             env = os.environ.copy()
             env["ASTRBOT_ROOT"] = os.path.join(self.install_dir, "AstrBot")

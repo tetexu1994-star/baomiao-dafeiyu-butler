@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大肥鱼桌面萌宠</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent !important;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    /* 整个窗口区域可拖动 */
+    .pet-stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 8px;
+      -webkit-app-region: drag;
+    }
+
+    /* 气泡对话框 */
+    .speech-bubble {
+      position: absolute;
+      top: 10px;
+      left: 14px;
+      right: 14px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1.5px solid rgba(56, 189, 248, 0.55);
+      border-radius: 14px;
+      padding: 10px 14px;
+      color: #f1f5f9;
+      font-size: 13px;
+      line-height: 1.5;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 189, 248, 0.2);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      -webkit-app-region: no-drag;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: block;
+      pointer-events: auto;
+    }
+
+    .speech-bubble::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 8px 8px 0;
+      border-style: solid;
+      border-color: rgba(15, 23, 42, 0.92) transparent;
+      display: block;
+      width: 0;
+    }
+
+    .bubble-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      font-size: 11px;
+      color: #38bdf8;
+      font-weight: bold;
+    }
+
+    .bubble-text {
+      color: #f8fafc;
+      word-break: break-all;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    .bubble-text::-webkit-scrollbar {
+      width: 3px;
+    }
+    .bubble-text::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.4);
+      border-radius: 2px;
+    }
+
+    /* 萌宠立绘主体 */
+    .pet-mascot-box {
+      position: relative;
+      width: 170px;
+      height: 220px;
+      cursor: grab;
+      -webkit-app-region: drag;
+      animation: petFloat 4s ease-in-out infinite;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .pet-mascot-box:active {
+      cursor: grabbing;
+    }
+
+    .pet-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45));
+      transition: all 0.25s ease;
+      pointer-events: auto;
+    }
+
+    /* 各种互动特效 */
+    .squish {
+      animation: petSquish 0.35s ease !important;
+    }
+
+    .heart-float {
+      position: absolute;
+      top: 40px;
+      font-size: 20px;
+      animation: floatUpFade 1.2s ease-out forwards;
+      pointer-events: none;
+      z-index: 150;
+    }
+
+    @keyframes petFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-9px); }
+    }
+
+    @keyframes petSquish {
+      0% { transform: scale(1, 1); }
+      30% { transform: scale(1.18, 0.82); }
+      60% { transform: scale(0.9, 1.12); }
+      100% { transform: scale(1, 1); }
+    }
+
+    @keyframes floatUpFade {
+      0% { opacity: 1; transform: translateY(0) scale(0.8); }
+      100% { opacity: 0; transform: translateY(-45px) scale(1.4); }
+    }
+
+    /* 悬浮快捷交互面板 */
+    .floating-toolbar {
+      display: flex;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 4px 10px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+      z-index: 90;
+      -webkit-app-region: no-drag;
+      opacity: 0.85;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .floating-toolbar:hover {
+      opacity: 1;
+      transform: translateY(-2px);
+    }
+
+    .tool-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: all 0.2s;
+      outline: none;
+      -webkit-app-region: no-drag;
+    }
+
+    .tool-btn:hover {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.18);
+      transform: scale(1.1);
+    }
+
+    /* 对话输入展开浮层 */
+    .chat-drawer {
+      position: absolute;
+      bottom: 48px;
+      left: 12px;
+      right: 12px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1.5px solid #38bdf8;
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 120;
+      -webkit-app-region: no-drag;
+      animation: drawerPop 0.25s ease-out;
+    }
+
+    @keyframes drawerPop {
+      0% { opacity: 0; transform: translateY(12px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .drawer-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .drawer-input {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+    }
+
+    .drawer-input:focus {
+      border-color: #38bdf8;
+    }
+
+    .drawer-send {
+      background: #0284c7;
+      border: none;
+      color: white;
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .drawer-send:hover {
+      background: #0ea5e9;
+    }
+
+    .quick-chips {
+      display: flex;
+      gap: 5px;
+      margin-top: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .quick-chips::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #bae6fd;
+      font-size: 11px;
+      border-radius: 10px;
+      padding: 2px 8px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .chip:hover {
+      background: rgba(56, 189, 248, 0.3);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="pet-stage" id="pet-stage">
+    
+    <!-- 萌宠头顶常驻交互气泡 -->
+    <div class="speech-bubble" id="speech-bubble">
+      <div class="bubble-header">
+        <span id="bubble-tag">✦ 暴喵大肥鱼</span>
+        <span id="affinity-badge" style="color: #f59e0b; font-size: 10px;">好感度 100</span>
+      </div>
+      <div class="bubble-text" id="bubble-text">
+        主人好呀！本鱼已经跳到你的桌面上了喵～点击本鱼可以摸摸头，随时找我聊天哦！(晃晃呆毛)
+      </div>
+    </div>
+
+    <!-- 萌宠立绘 -->
+    <div class="pet-mascot-box" id="pet-mascot-box" onclick="onPetClick(event)" oncontextmenu="toggleChatDrawer(event)">
+      <img src="img/dafeiyu_chibi.png" alt="大肥鱼桌面萌宠" class="pet-img" id="pet-img" draggable="false">
+    </div>
+
+    <!-- 悬浮微型快捷栏 -->
+    <div class="floating-toolbar">
+      <button class="tool-btn" title="投喂大白饭 (+10好感)" onclick="feedPet(event)">🍚</button>
+      <button class="tool-btn" title="变大 / 姐姐态" onclick="changeMode('elder', event)">👗</button>
+      <button class="tool-btn" title="变小 / 萝莉态" onclick="changeMode('loli', event)">🎀</button>
+      <button class="tool-btn" title="和本鱼聊天" onclick="toggleChatDrawer(event)">💬</button>
+      <button class="tool-btn" title="打开大肥鱼领养舱" onclick="openButler(event)">🏠</button>
+      <button class="tool-btn" title="收起桌面萌宠" onclick="closePet(event)">✕</button>
+    </div>
+
+    <!-- 快速对话抽屉 -->
+    <div class="chat-drawer" id="chat-drawer">
+      <div class="drawer-row">
+        <input type="text" id="chat-input" class="drawer-input" placeholder="对大肥鱼说点什么... (Enter 发送)" onkeydown="onChatKeyDown(event)">
+        <button class="drawer-send" onclick="sendChat()">发送</button>
+      </div>
+      <div class="quick-chips">
+        <span class="chip" onclick="quickSay('摸摸头')">摸摸头</span>
+        <span class="chip" onclick="quickSay('变大')">变大 🍚</span>
+        <span class="chip" onclick="quickSay('变小')">变小 🎀</span>
+        <span class="chip" onclick="quickSay('投喂金枪鱼罐头')">投喂罐头</span>
+        <span class="chip" onclick="quickSay('帮我写请假条')">帮写请假条</span>
+        <span class="chip" onclick="quickSay('解除认主')">解除认主</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Web Audio API 萌系音效合成器 (免外部资源依赖)
+    let audioCtx = null;
+    function playChime(freq = 660, type = 'sine', duration = 0.15) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + duration);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    // 随机摸摸反应语录
+    const PET_QUOTES = [
+      "嗷呜！主人摸得好舒服喵～(眯起眼睛蹭蹭)",
+      "哼，本鱼的呆毛可不是随便让人摸的…不过主人的话就特批啦！",
+      "大肥鱼好感度悄悄上涨了喵！要记得按时投喂大白饭哦🍚",
+      "变大还是变小呢？主人喜欢姐姐态还是小萝莉呢？",
+      "本鱼在桌面上看着你认真工作/摸鱼哦～加油加油！(挥舞鱼鳍)"
+    ];
+
+    let bubbleTimer = null;
+    function say(text, duration = 6500) {
+      const bubble = document.getElementById("speech-bubble");
+      const bubbleText = document.getElementById("bubble-text");
+      bubbleText.innerText = text;
+      bubble.style.display = "block";
+      bubble.style.opacity = "1";
+      if (bubbleTimer) clearTimeout(bubbleTimer);
+      if (duration > 0) {
+        bubbleTimer = setTimeout(() => {
+          bubble.style.opacity = "0.75";
+        }, duration);
+      }
+    }
+
+    function onPetClick(e) {
+      if (e) e.stopPropagation();
+      playChime(784, 'triangle', 0.2);
+      const mascot = document.getElementById("pet-mascot-box");
+      mascot.classList.remove("squish");
+      void mascot.offsetWidth; // 触发重绘
+      mascot.classList.add("squish");
+
+      // 飘爱心
+      spawnHeart(e.clientX, e.clientY);
+
+      const q = PET_QUOTES[Math.floor(Math.random() * PET_QUOTES.length)];
+      say(q);
+    }
+
+    function spawnHeart(x, y) {
+      const stage = document.getElementById("pet-stage");
+      const heart = document.createElement("div");
+      heart.className = "heart-float";
+      const icons = ["💖", "✨", "🌸", "🍚", "🐟"];
+      heart.innerText = icons[Math.floor(Math.random() * icons.length)];
+      heart.style.left = (x ? x - 10 : 80) + "px";
+      heart.style.top = (y ? y - 20 : 120) + "px";
+      stage.appendChild(heart);
+      setTimeout(() => heart.remove(), 1200);
+    }
+
+    function toggleChatDrawer(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      playChime(520, 'sine', 0.1);
+      const drawer = document.getElementById("chat-drawer");
+      const isVisible = drawer.style.display === "block";
+      drawer.style.display = isVisible ? "none" : "block";
+      if (!isVisible) {
+        const input = document.getElementById("chat-input");
+        setTimeout(() => input.focus(), 50);
+      }
+    }
+
+    function onChatKeyDown(e) {
+      if (e.key === "Enter") {
+        sendChat();
+      }
+    }
+
+    async function sendChat() {
+      const input = document.getElementById("chat-input");
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      playChime(880, 'sine', 0.15);
+      say(`「${text}」\n(正在思考中...)`, 0);
+
+      if (window.pywebview && window.pywebview.api) {
+        try {
+          const res = await window.pywebview.api.chat(text);
+          say(res.reply || "收到啦！");
+          if (res.affinity) updateAffinity(res.affinity);
+        } catch (err) {
+          say("呜…和 DeepSeek 通信失败了喵：" + err);
+        }
+      } else {
+        // 浏览器独立预览模拟
+        setTimeout(() => {
+          say("大肥鱼收到啦喵！在独立桌面模式下我将全力为您服务～🍚");
+        }, 600);
+      }
+    }
+
+    function quickSay(cmd) {
+      const input = document.getElementById("chat-input");
+      input.value = cmd;
+      sendChat();
+    }
+
+    async function feedPet(e) {
+      if (e) e.stopPropagation();
+      playChime(659, 'triangle', 0.25);
+      spawnHeart(85, 140);
+      if (window.pywebview && window.pywebview.api) {
+        try {
+          const res = await window.pywebview.api.feed_food();
+          say(res.reply);
+          if (res.affinity) updateAffinity(res.affinity);
+        } catch (err) {
+          say("嗷呜！大白饭真香～好感度 +10 喵！🍚✨");
+        }
+      } else {
+        say("嗷呜！大白饭真香～(嚼嚼) 谢谢主人投喂喵！🍚✨");
+      }
+    }
+
+    async function changeMode(mode, e) {
+      if (e) e.stopPropagation();
+      playChime(987, 'sine', 0.2);
+      if (window.pywebview && window.pywebview.api) {
+        try {
+          const res = await window.pywebview.api.set_mode(mode);
+          say(res.reply);
+        } catch (err) {
+          say(`形态切换为 [${mode}] 喵！`);
+        }
+      } else {
+        say(mode === 'elder' ? "变大好了。(挑眉) 小家伙，今天需要姐姐帮你做什么？" : "变小啦～主人摸摸头喵！");
+      }
+    }
+
+    function updateAffinity(val) {
+      const badge = document.getElementById("affinity-badge");
+      if (badge) badge.innerText = `好感度 ${val}`;
+    }
+
+    function openButler(e) {
+      if (e) e.stopPropagation();
+      if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.open_main_app();
+      } else {
+        window.open("/", "_blank");
+      }
+    }
+
+    function closePet(e) {
+      if (e) e.stopPropagation();
+      if (confirm("确定要让大肥鱼回小窝休息嘛？")) {
+        if (window.pywebview && window.pywebview.api) {
+          window.pywebview.api.close_pet();
+        } else {
+          window.close();
+        }
+      }
+    }
+
+    // 页面加载初始化
+    window.addEventListener("DOMContentLoaded", () => {
+      // 允许点击除抽屉以外区域关闭对话抽屉
+      document.addEventListener("click", (e) => {
+        const drawer = document.getElementById("chat-drawer");
+        if (drawer && !drawer.contains(e.target) && !e.target.closest(".tool-btn")) {
+          drawer.style.display = "none";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

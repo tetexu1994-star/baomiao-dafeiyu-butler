@@ -23,6 +23,7 @@
       </div>
 
       <div class="header-status-tray">
+        <button class="btn btn-outline" style="font-size: 11px; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" onclick="launchDesktopPet()">🐾 桌面萌宠</button>
         <div class="system-status-indicator">
           <span class="ping-dot"></span>
           <span id="service-status">本机模式</span>
@@ -268,6 +269,7 @@
             </div>
 
             <div class="activation-toolbar">
+              <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #0284c7, #38bdf8); border: none;" onclick="launchDesktopPet()">🐾 唤起桌面萌宠</button>
               <button class="btn btn-outline btn-sm" onclick="restartServices()">🔄 刷新连接</button>
               <button class="btn btn-outline btn-sm" onclick="relogin()">🔑 重新扫码换号</button>
               <button class="btn btn-danger-soft btn-sm" onclick="stopServices()">⏹️ 停止服务</button>
@@ -281,7 +283,8 @@
             <h3>太棒啦！大肥鱼已成功唤醒并就绪！</h3>
             <p>大肥鱼已认你为唯一主人。可随时将小号拉入 QQ 群聊一起玩耍～</p>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-primary" style="background: linear-gradient(135deg, #0284c7, #38bdf8); border: none; font-size: 13px; padding: 7px 14px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);" onclick="launchDesktopPet()">🐾 唤起桌面萌宠</button>
             <button class="btn btn-success-action" onclick="openHelpModal()">查看互动口令 &gt;</button>
             <button class="btn btn-outline" style="font-size: 12px; padding: 7px 12px; border-radius: 8px;" onclick="unbindMaster()">👑 解除主人绑定</button>
           </div>

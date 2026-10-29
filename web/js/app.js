@@ -251,13 +251,17 @@ function setLoginSuccessUI() {
 
   if (placeholder) {
     placeholder.style.display = "flex";
+    placeholder.style.flexDirection = "column";
+    placeholder.style.alignItems = "center";
+    placeholder.style.padding = "10px";
     placeholder.innerHTML = `
-      <div class="active-mascot-wrapper" style="position: relative; width: 84px; height: 84px; margin: 0 auto 10px auto; animation: bounceIn 0.5s ease;">
-        <img src="img/dafeiyu_logo.png" alt="大肥鱼" style="width: 84px; height: 84px; border-radius: 50%; border: 3px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.45); object-fit: cover;">
-        <span style="position: absolute; bottom: 2px; right: 2px; width: 16px; height: 16px; background: #10b981; border: 2.5px solid #0f172a; border-radius: 50%; box-shadow: 0 0 8px #10b981;"></span>
+      <div class="active-mascot-wrapper" style="position: relative; width: 130px; height: 145px; margin: 0 auto 8px auto;">
+        <img src="img/dafeiyu_chibi.png" alt="暴喵大肥鱼" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(56, 189, 248, 0.45));">
+        <span style="position: absolute; bottom: 6px; right: 14px; width: 14px; height: 14px; background: #10b981; border: 2.5px solid #0f172a; border-radius: 50%; box-shadow: 0 0 8px #10b981;"></span>
       </div>
-      <p style="color: #10b981; font-weight: bold; font-size: 16px; margin: 0 0 4px 0;">大肥鱼已激活 · 在线中</p>
-      <p style="color: #94a3b8; font-size: 12.5px; margin: 0; line-height: 1.4;">免扫码自动上线<br>随时给小号发消息对话</p>
+      <p style="color: #38bdf8; font-weight: bold; font-size: 16px; margin: 0 0 4px 0; text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);">大肥鱼已激活 · 在线中</p>
+      <p style="color: #94a3b8; font-size: 12px; margin: 0 0 10px 0; line-height: 1.4;">免扫码自动上线 · 随时对话互动</p>
+      <button class="btn btn-primary" style="font-size: 12px; padding: 6px 14px; border-radius: 20px; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4); font-weight: bold;" onclick="launchDesktopPet()">🐾 唤起桌面萌宠伴侣</button>
     `;
   }
   if (qrImg) qrImg.style.display = "none";
@@ -460,5 +464,23 @@ async function unbindMaster() {
     appendLog("👑 [契约] 已成功解除主人绑定，大肥鱼恢复自由无主身。");
   } catch (err) {
     alert("解除绑定失败: " + err.message);
+  }
+}
+
+async function launchDesktopPet() {
+  try {
+    const res = await fetch("/api/launch_pet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    const data = await res.json();
+    if (data.success) {
+      appendLog("🐾 [桌面萌宠] " + (data.message || "大肥鱼桌面伴侣已成功唤起！可在桌面任意拖拽或对话。"));
+    } else {
+      alert("桌面萌宠提示: " + data.message);
+    }
+  } catch (err) {
+    alert("唤起桌面萌宠失败: " + err.message);
   }
 }

@@ -377,6 +377,33 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
                     pass
             self._send_json({"success": True, "message": "已成功解除主人绑定，大肥鱼现已恢复自由无主身！"})
 
+        elif parsed.path == "/api/launch_pet":
+            # 唤起常驻桌面萌宠 (可直接拖拽、悬浮置顶透明伴侣)
+            pet_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "desktop_pet.py")
+            desktop_pet_exe = os.path.expandvars(r"%USERPROFILE%\Desktop\大肥鱼桌面宠物.exe")
+            local_pet_exe = os.path.join(os.path.dirname(os.path.abspath(__file__)), "大肥鱼桌面宠物.exe")
+            launched = False
+            launch_msg = ""
+            try:
+                if os.path.isfile(desktop_pet_exe):
+                    subprocess.Popen([desktop_pet_exe], close_fds=True)
+                    launched = True
+                    launch_msg = "已唤起桌面宠物程序！"
+                elif os.path.isfile(local_pet_exe):
+                    subprocess.Popen([local_pet_exe], close_fds=True)
+                    launched = True
+                    launch_msg = "已唤起桌面宠物程序！"
+                elif os.path.isfile(pet_script):
+                    subprocess.Popen([sys.executable, pet_script], close_fds=True)
+                    launched = True
+                    launch_msg = "已唤起桌面宠物服务！"
+                else:
+                    launch_msg = "未找到 desktop_pet.py 或桌面宠物可执行文件"
+            except Exception as e:
+                self._send_json({"success": False, "message": f"启动桌面宠物失败: {e}"})
+                return
+            self._send_json({"success": launched, "message": launch_msg})
+
         elif parsed.path == "/api/relogin":
             with config_lock:
                 config_snapshot = dict(user_config)
