@@ -253,9 +253,13 @@ class ProcessManager:
                 return [sys.executable, target], astrbot_dir
         return None, astrbot_dir
 
-    def start_astrbot(self):
+    def start_astrbot(self, force_restart=False):
         if self._process_is_alive(self.astrbot_proc):
-            return True
+            if not force_restart:
+                return True
+            self.log("AstrBot", "正在重启 AstrBot 核心引擎以加载最新模型配置...")
+            self._kill_tree(self.astrbot_proc)
+            self.astrbot_proc = None
         cmd, cwd = self._astrbot_command()
         if not cmd:
             self.log("AstrBot", "🚀 检测到 AstrBot 核心引擎尚未安装，正在全自动拉取装配...")
@@ -426,11 +430,11 @@ class ProcessManager:
             time.sleep(0.5)
         return False
 
-    def start_all(self, bot_qq=""):
+    def start_all(self, bot_qq="", force_restart_astrbot=True):
         with self._lock:
             if self._starting:
                 return True
-            if self.is_running and self._process_is_alive(self.astrbot_proc) and self._process_is_alive(self.napcat_proc):
+            if not force_restart_astrbot and self.is_running and self._process_is_alive(self.astrbot_proc) and self._process_is_alive(self.napcat_proc):
                 if self.last_qr and self.qr_callback:
                     self.qr_callback({"type": "base64", "data": self.last_qr})
                 return True
@@ -447,8 +451,8 @@ class ProcessManager:
                 self.stop_all()
                 return False
 
-            # 优化 2：同时并发拉起 AstrBot AI 核心
-            if not self.start_astrbot():
+            # 优化 2：同时拉起 AstrBot AI 核心（带配置强制热重载）
+            if not self.start_astrbot(force_restart=force_restart_astrbot):
                 self.stop_all()
                 return False
 

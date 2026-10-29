@@ -105,6 +105,18 @@ def build_astrbot_config(existing, user_config):
     elif "baomiao" in api_base.lower():
         model_name = "DeepSeek-V4.1-Flash 1017(1.20x)"
 
+    source_id = f"{ASTRBOT_PROVIDER_ID}_source"
+    provider_source = {
+        "id": source_id,
+        "provider": "openai",
+        "type": "openai_chat_completion",
+        "provider_type": "chat_completion",
+        "key": [api_key],
+        "api_base": api_base,
+        "timeout": 120,
+        "proxy": "",
+        "custom_headers": {},
+    }
     provider = {
         "id": ASTRBOT_PROVIDER_ID,
         "provider": "openai",
@@ -114,6 +126,9 @@ def build_astrbot_config(existing, user_config):
         "key": [api_key],
         "model": model_name,
         "api_base": api_base,
+        "provider_source_id": source_id,
+        "modalities": [],
+        "custom_extra_body": {},
         "timeout": 120,
         "proxy": "",
         "custom_headers": {},
@@ -129,9 +144,15 @@ def build_astrbot_config(existing, user_config):
 
     config["config_version"] = 5
     config["wake_prefix"] = []
-    # 仅保留主通道，清理历史可能残留的 fallback provider，避免切到不存在的模型报错
-    clean_providers = [p for p in config.get("provider", []) if p.get("id") != f"{ASTRBOT_PROVIDER_ID}-fallback"]
-    config["provider"] = _upsert_by_id(clean_providers, provider)
+    # 彻底清理历史所有重复残留的 provider 和 provider_sources，同步注入 AstrBot 4.29 双表结构
+    clean_providers = [p for p in config.get("provider", []) if p.get("id") not in (ASTRBOT_PROVIDER_ID, f"{ASTRBOT_PROVIDER_ID}-fallback")]
+    clean_providers.append(provider)
+    config["provider"] = clean_providers
+
+    clean_sources = [s for s in config.get("provider_sources", []) if s.get("id") not in (source_id, f"{ASTRBOT_PROVIDER_ID}-fallback_source")]
+    clean_sources.append(provider_source)
+    config["provider_sources"] = clean_sources
+
     config["platform"] = _upsert_by_id(config.get("platform", []), platform)
 
     # AstrBot 4.x Agent Runner 核心架构绑定（缺少此项会导致 LLM 模型无法调度，无回复）
