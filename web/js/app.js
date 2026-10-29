@@ -1,10 +1,10 @@
 let currentConfig = {
   master_qq: "",
   bot_qq: "",
-  api_provider: "deepseek",
+  api_provider: "baomiao",
   api_key: "",
   api_key_set: false,
-  api_base: "https://api.deepseek.com/v1",
+  api_base: "https://api.baomiao.com/v1",
   model_name: "deepseek-chat"
 };
 
@@ -27,8 +27,11 @@ async function loadConfig() {
     currentConfig = { ...currentConfig, ...data };
     document.getElementById("master_qq").value = currentConfig.master_qq || "";
     document.getElementById("bot_qq").value = currentConfig.bot_qq || "";
-    document.getElementById("api_key").value = "";
-    selectProvider(currentConfig.api_provider || "deepseek");
+    const baomiaoKeyEl = document.getElementById("baomiao_api_key");
+    const deepseekKeyEl = document.getElementById("api_key");
+    if (baomiaoKeyEl) baomiaoKeyEl.value = "";
+    if (deepseekKeyEl) deepseekKeyEl.value = "";
+    selectProvider(currentConfig.api_provider || "baomiao");
     if (currentConfig.install_dir) {
       document.getElementById("display-install-dir").textContent = currentConfig.install_dir;
     }
@@ -38,17 +41,22 @@ async function loadConfig() {
 }
 
 function selectProvider(provider) {
-  if (provider === "baomiao") {
-    alert("暴喵免配通道尚未接入当前版本，请使用 DeepSeek API Key。");
-    provider = "deepseek";
-  }
   currentConfig.api_provider = provider;
-  document.querySelectorAll(".provider-card, .provider-choice, .provider-option").forEach(el => {
+  document.querySelectorAll(".provider-card, .provider-choice, .provider-option, .deck-option").forEach(el => {
     el.classList.toggle("active", el.dataset.provider === provider);
   });
-  const keyContainer = document.getElementById("key-input-container");
-  if (keyContainer) {
-    keyContainer.style.display = provider === "deepseek" ? "block" : "none";
+  
+  const baomiaoContainer = document.getElementById("baomiao-key-container");
+  const deepseekContainer = document.getElementById("deepseek-key-container");
+  
+  if (provider === "baomiao") {
+    currentConfig.api_base = "https://api.baomiao.com/v1";
+    if (baomiaoContainer) baomiaoContainer.style.display = "block";
+    if (deepseekContainer) deepseekContainer.style.display = "none";
+  } else {
+    currentConfig.api_base = "https://api.deepseek.com/v1";
+    if (baomiaoContainer) baomiaoContainer.style.display = "none";
+    if (deepseekContainer) deepseekContainer.style.display = "block";
   }
 }
 
@@ -56,7 +64,6 @@ async function goToStep(step) {
   if (step === 2) {
     const master = document.getElementById("master_qq").value.trim();
     const bot = document.getElementById("bot_qq").value.trim();
-    const apiKey = document.getElementById("api_key").value.trim();
     if (!/^\d{1,12}$/.test(master)) {
       alert("请填写正确的【主人大号 QQ】。");
       return;
@@ -65,15 +72,28 @@ async function goToStep(step) {
       alert("请填写正确的【机器人小号 QQ】。");
       return;
     }
-    if (!apiKey && !currentConfig.api_key_set) {
-      alert("请填写 DeepSeek API Key。");
-      return;
+
+    let inputKey = "";
+    if (currentConfig.api_provider === "baomiao") {
+      const el = document.getElementById("baomiao_api_key");
+      inputKey = el ? el.value.trim() : "";
+      if (!inputKey && !currentConfig.api_key_set) {
+        alert("请填写暴喵专属 API Key！\n\n💡 若未持有，请点击卡片中的【免费下载暴喵 AI 管家】领取专属算力包。");
+        return;
+      }
+    } else {
+      const el = document.getElementById("api_key");
+      inputKey = el ? el.value.trim() : "";
+      if (!inputKey && !currentConfig.api_key_set) {
+        alert("请填写 DeepSeek 官方 API Key。");
+        return;
+      }
     }
 
     currentConfig.master_qq = master;
     currentConfig.bot_qq = bot;
-    if (apiKey) {
-      currentConfig.api_key = apiKey;
+    if (inputKey) {
+      currentConfig.api_key = inputKey;
       currentConfig.api_key_set = true;
     }
     const saved = await saveConfig();
@@ -134,6 +154,12 @@ function updateInstallStatus(state) {
 
 function toggleKeyVisibility() {
   const input = document.getElementById("api_key");
+  if (!input) return;
+  input.type = input.type === "password" ? "text" : "password";
+}
+
+function toggleBaomiaoKeyVisibility() {
+  const input = document.getElementById("baomiao_api_key");
   if (!input) return;
   input.type = input.type === "password" ? "text" : "password";
 }

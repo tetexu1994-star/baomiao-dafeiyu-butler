@@ -30,12 +30,11 @@ jobs:
 
     - name: Build Executable
       run: |
-        pyinstaller --noconfirm --onedir --windowed --name="暴喵大肥鱼一键管家" --add-data "web;web" app.py
-        pyinstaller --noconfirm --onefile --windowed --name="暴喵大肥鱼一键管家" --add-data "web;web" app.py
+        pyinstaller --noconfirm --onefile --windowed --name="一键安装" --add-data "web;web" --hidden-import=webview app.py
 
     - name: Upload Single EXE Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: 暴喵大肥鱼一键管家-Windows-x64
-        path: dist/暴喵大肥鱼一键管家.exe
+        name: 一键安装-Windows-x64
+        path: dist/一键安装.exe
 

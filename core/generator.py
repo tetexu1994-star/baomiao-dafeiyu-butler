@@ -73,13 +73,19 @@ def build_astrbot_config(existing, user_config):
     onebot_port = int(user_config.get("napcat_port", 6199))
 
     if api_provider == "baomiao":
-        raise ValueError("暴喵免配通道尚未接入当前版本，请选择 DeepSeek")
-    if not api_key:
-        raise ValueError("DeepSeek API Key 不能为空")
+        api_base = str(user_config.get("api_base") or "https://api.baomiao.com/v1").strip()
+        if not api_key:
+            raise ValueError("请填入暴喵专属 API Key（若未持有，可点击下方按钮下载暴喵AI管家免费领取）")
+    elif api_provider == "deepseek":
+        api_base = str(user_config.get("api_base") or "https://api.deepseek.com/v1").strip()
+        if not api_key:
+            raise ValueError("DeepSeek API Key 不能为空")
+    else:
+        raise ValueError(f"不支持的模型通道: {api_provider}")
 
     provider = {
         "id": ASTRBOT_PROVIDER_ID,
-        "provider": "deepseek" if api_provider == "deepseek" else "openai",
+        "provider": "openai" if api_provider == "baomiao" else "deepseek",
         "type": "openai_chat_completion",
         "provider_type": "chat_completion",
         "enable": True,

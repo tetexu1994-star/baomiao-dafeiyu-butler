@@ -50,10 +50,11 @@ class GeneratorTests(unittest.TestCase):
         self.assertFalse(config["ws"]["enable"])
         self.assertEqual(config["reverseWs"]["urls"], ["ws://127.0.0.1:6199/ws"])
 
-    def test_baomiao_provider_is_rejected_until_supported(self):
+    def test_baomiao_provider_is_supported(self):
         self.user_config["api_provider"] = "baomiao"
-        with self.assertRaisesRegex(ValueError, "尚未接入"):
-            build_astrbot_config({}, self.user_config)
+        config = build_astrbot_config({}, self.user_config)
+        self.assertEqual(config["provider"][0]["provider"], "openai")
+        self.assertEqual(config["provider"][0]["api_base"], "https://api.deepseek.com/v1")
 
 
 class ValidationTests(unittest.TestCase):
@@ -61,15 +62,15 @@ class ValidationTests(unittest.TestCase):
         valid = {
             "master_qq": "12345678",
             "bot_qq": "87654321",
-            "api_provider": "deepseek",
-            "api_key": "sk-test",
-            "api_base": "https://api.deepseek.com/v1",
+            "api_provider": "baomiao",
+            "api_key": "sk-baomiao-test",
+            "api_base": "https://api.baomiao.com/v1",
             "model_name": "deepseek-chat",
         }
         self.assertEqual(validate_config(valid, require_complete=True), "")
         invalid = dict(valid, master_qq="not-a-qq")
         self.assertIn("QQ", validate_config(invalid, require_complete=True))
-        unsupported = dict(valid, api_provider="baomiao")
+        unsupported = dict(valid, api_provider="unknown_provider")
         self.assertIn("仅支持", validate_config(unsupported))
 
 

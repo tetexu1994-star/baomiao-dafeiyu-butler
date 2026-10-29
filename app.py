@@ -143,14 +143,14 @@ def validate_config(data, require_complete=False):
         if not bot_qq.isdigit() or len(bot_qq) > 12:
             return "机器人小号 QQ 格式错误"
         if not api_key:
-            return "DeepSeek API Key 不能为空"
+            return "API Key 不能为空（若使用暴喵通道请填入暴喵 Key 或下载暴喵 AI 管家）"
     elif master_qq and (not master_qq.isdigit() or len(master_qq) > 12):
         return "主人大号 QQ 格式错误"
     elif bot_qq and (not bot_qq.isdigit() or len(bot_qq) > 12):
         return "机器人小号 QQ 格式错误"
 
-    if api_provider not in {"deepseek", "custom"}:
-        return "当前版本仅支持 DeepSeek 或自定义 OpenAI 兼容接口"
+    if api_provider not in {"baomiao", "deepseek", "custom"}:
+        return "当前仅支持暴喵专属免配通道或 DeepSeek 官方接口"
     if len(api_key) > 512:
         return "API Key 过长"
     parsed = urlparse(api_base)
@@ -371,7 +371,7 @@ def main():
     server = start_server(18999)
     port = server.server_port
     url = f"http://127.0.0.1:{port}"
-    print(f"[暴喵大肥鱼一键管家] 本地控制台已启动: {url}")
+    print(f"[一键安装] 本地控制台已启动: {url}")
 
     # 优先启动原生独立桌面小工具窗口 (pywebview / Edge WebView2)
     use_webview = False
@@ -383,9 +383,9 @@ def main():
 
     if use_webview:
         try:
-            print("[暴喵大肥鱼一键管家] 正在唤起原生桌面窗口...")
+            print("[一键安装] 正在唤起原生桌面窗口...")
             window = webview.create_window(
-                title="暴喵大肥鱼一键管家",
+                title="一键安装",
                 url=url,
                 width=980,
                 height=720,
@@ -396,7 +396,7 @@ def main():
             if process_mgr:
                 process_mgr.stop_all()
             server.shutdown()
-            print("[系统] 原生窗口已关闭，管家服务安全退出。")
+            print("[系统] 原生窗口已关闭，一键安装工具安全退出。")
             return
         except Exception as e:
             print(f"[提示] 原生窗口拉起失败，回退至浏览器: {e}")
@@ -406,9 +406,9 @@ def main():
     webbrowser.open(url)
 
     print("==================================================")
-    print(" [暴喵大肥鱼一键管家] 已在桌面浏览器运行")
+    print(" [一键安装] 已在桌面浏览器运行")
     print(" 如未自动弹出窗口，请手动访问: " + url)
-    print(" 按 Ctrl + C 可退出管家服务")
+    print(" 按 Ctrl + C 可退出服务")
     print("==================================================")
 
     try:

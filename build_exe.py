@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-暴喵大肥鱼一键管家 · 单文件 .exe 打包脚本
+一键安装 · 单文件 .exe 打包脚本
 在 Windows 环境下运行：python build_exe.py
 """
 
@@ -16,10 +16,10 @@ if sys.platform.startswith("win"):
 
 def build():
     print("==================================================")
-    print(" 开始打包 [暴喵大肥鱼一键管家.exe] ...")
+    print(" 开始打包 [一键安装.exe] ...")
     print("==================================================")
 
-    print("[提示] 正在校验 PyInstaller 6.22.3...")
+    print("[提示] 正在安装打包依赖...")
     subprocess.check_call([
         sys.executable, "-m", "pip", "install",
         "-r", os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements-build.txt"),
@@ -35,11 +35,12 @@ def build():
 
     cmd = [
         sys.executable, "-m", "PyInstaller",
-        "--name=暴喵大肥鱼一键管家",
+        "--name=一键安装",
         "--onefile",
         "--clean",
         "--windowed",
         f"--add-data={add_data_web}",
+        "--hidden-import=webview",
         os.path.join(base_dir, "app.py")
     ]
 
@@ -48,7 +49,7 @@ def build():
     
     print("\n==================================================")
     print("🎉 打包完成！")
-    print(f"生成的单文件程序位于: {os.path.join(base_dir, 'dist', '暴喵大肥鱼一键管家.exe')}")
+    print(f"生成的单文件程序位于: {os.path.join(base_dir, 'dist', '一键安装.exe')}")
     print("==================================================")
 
 if __name__ == "__main__":
