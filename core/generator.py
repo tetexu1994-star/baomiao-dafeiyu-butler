@@ -110,20 +110,6 @@ def build_astrbot_config(existing, user_config):
         "proxy": "",
         "custom_headers": {},
     }
-    alt_model = "deepseek-flash" if "1017" in model_name else "DeepSeek-V4.1-Flash 1017(1.20x)"
-    fallback_provider = {
-        "id": f"{ASTRBOT_PROVIDER_ID}-fallback",
-        "provider": "openai",
-        "type": "openai_chat_completion",
-        "provider_type": "chat_completion",
-        "enable": True,
-        "key": [api_key],
-        "model": alt_model,
-        "api_base": api_base,
-        "timeout": 120,
-        "proxy": "",
-        "custom_headers": {},
-    }
     platform = {
         "id": ASTRBOT_PLATFORM_ID,
         "type": "aiocqhttp",
@@ -135,8 +121,9 @@ def build_astrbot_config(existing, user_config):
 
     config["config_version"] = 5
     config["wake_prefix"] = []
-    config["provider"] = _upsert_by_id(config.get("provider", []), provider)
-    config["provider"] = _upsert_by_id(config["provider"], fallback_provider)
+    # 仅保留主通道，清理历史可能残留的 fallback provider，避免切到不存在的模型报错
+    clean_providers = [p for p in config.get("provider", []) if p.get("id") != f"{ASTRBOT_PROVIDER_ID}-fallback"]
+    config["provider"] = _upsert_by_id(clean_providers, provider)
     config["platform"] = _upsert_by_id(config.get("platform", []), platform)
 
     # AstrBot 4.x Agent Runner 核心架构绑定（缺少此项会导致 LLM 模型无法调度，无回复）
@@ -145,7 +132,7 @@ def build_astrbot_config(existing, user_config):
     runner_cfg = runner.setdefault("config", {})
     model_cfg = runner_cfg.setdefault("model", {})
     model_cfg["provider_id"] = ASTRBOT_PROVIDER_ID
-    model_cfg["fallback_provider_ids"] = [f"{ASTRBOT_PROVIDER_ID}-fallback"]
+    model_cfg["fallback_provider_ids"] = []
     model_cfg["request_max_retries"] = 5
 
     persona_cfg = runner_cfg.setdefault("persona", {})

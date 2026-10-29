@@ -39,7 +39,7 @@ class GeneratorTests(unittest.TestCase):
         config = build_astrbot_config(existing, self.user_config)
 
         self.assertEqual(config["log_level"], "DEBUG")
-        self.assertEqual([item["id"] for item in config["provider"]], ["other", "baomiao-deepseek", "baomiao-deepseek-fallback"])
+        self.assertEqual([item["id"] for item in config["provider"]], ["other", "baomiao-deepseek"])
         self.assertEqual(config["provider_settings"]["default_provider_id"], "baomiao-deepseek")
         self.assertEqual(config["admins_id"], ["12345678"])
         self.assertEqual(config["dashboard"]["host"], "127.0.0.1")

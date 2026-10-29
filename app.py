@@ -88,6 +88,7 @@ install_state = {
 }
 downloader = None
 process_mgr = None
+llm_ready_state = {"ready": False, "msg": ""}
 
 
 def broadcast_event(event_dict):
@@ -409,10 +410,12 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
         elif parsed.path == "/api/service/status":
             is_connected = bool(process_mgr and (process_mgr.is_logged_in or process_mgr.is_onebot_connected()))
             has_qr = bool(process_mgr and process_mgr.last_qr)
+            is_chat_ready = bool(is_connected and llm_ready_state.get("ready"))
             self._send_json({
                 "success": True,
                 "running": process_mgr.is_running if process_mgr else False,
                 "is_logged_in": is_connected,
+                "is_chat_ready": is_chat_ready,
                 "has_qr": has_qr,
                 "qr_data": process_mgr.last_qr if process_mgr else "",
             })
@@ -540,14 +543,21 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
                 ok = process_mgr.start_all(bot_qq=config_snapshot.get("bot_qq", ""))
                 if ok:
                     def _run_llm_test(snapshot):
+                        global llm_ready_state
+                        time.sleep(2)
                         llm_ok, llm_msg = test_llm_connection(snapshot)
+                        llm_ready_state["ready"] = llm_ok
+                        llm_ready_state["msg"] = llm_msg
                         broadcast_event({"type": "llm_test", "success": llm_ok, "message": llm_msg})
+                        if llm_ok:
+                            broadcast_event({"type": "chat_ready", "success": True, "message": "大模型握手成功！大肥鱼现已真正就绪，可以在 QQ 发送消息开始对话啦！"})
                     threading.Thread(target=_run_llm_test, args=(config_snapshot,), daemon=True).start()
                 self._send_json({"success": ok, "message": "" if ok else "服务启动失败，请查看日志"})
             except Exception as exc:
                 self._send_json({"success": False, "message": str(exc)}, 400)
 
         elif parsed.path == "/api/stop":
+            llm_ready_state["ready"] = False
             if process_mgr:
                 process_mgr.stop_all()
             self._send_json({"success": True})

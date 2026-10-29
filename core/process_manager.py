@@ -399,7 +399,7 @@ class ProcessManager:
             if any(kw in clean_line for kw in success_keywords):
                 self.is_logged_in = True
                 if self.qr_callback:
-                    self.qr_callback({"type": "status", "status": "success", "message": "大肥鱼已激活·在线中！"})
+                    self.qr_callback({"type": "status", "status": "qq_logged_in", "message": "QQ 登录成功，正在建立 OneBot 通信并唤醒 AI 对话引擎..."})
             elif "https://qm.qq.com" in clean_line or "https://ssl.ptlogin2.qq.com" in clean_line:
                 for word in clean_line.split():
                     if word.startswith("http"):

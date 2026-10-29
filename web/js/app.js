@@ -477,18 +477,49 @@ function setLoginSuccessUI() {
     placeholder.style.width = "100%";
     placeholder.innerHTML = `
       <div class="active-mascot-wrapper" style="position: relative; width: 92px; height: 112px; margin: 2px auto 8px auto; animation: petFloat 4s ease-in-out infinite;">
-        <img src="img/dafeiyu_chibi.png" alt="暴喵大肥鱼" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(56, 189, 248, 0.35));">
-        <span style="position: absolute; bottom: 2px; right: 8px; width: 12px; height: 12px; background: #10b981; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 0 6px #10b981;"></span>
+        <img src="img/dafeiyu_chibi.png" alt="暴喵大肥鱼" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(245, 158, 11, 0.35));">
+        <span style="position: absolute; bottom: 2px; right: 8px; width: 12px; height: 12px; background: #f59e0b; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 0 6px #f59e0b;"></span>
       </div>
-      <p style="color: #0284c7; font-weight: 700; font-size: 15px; margin: 0 0 3px 0; white-space: nowrap; text-align: center; letter-spacing: 0.5px;">大肥鱼已激活 · 在线中</p>
-      <p style="color: #64748b; font-size: 11.5px; margin: 0; white-space: nowrap; text-align: center;">随时在 QQ 发消息对话</p>
+      <p style="color: #f59e0b; font-weight: 700; font-size: 15px; margin: 0 0 3px 0; white-space: nowrap; text-align: center; letter-spacing: 0.5px;">QQ 已登录 · 正在连接大模型</p>
+      <p style="color: #64748b; font-size: 11.5px; margin: 0; white-space: nowrap; text-align: center;">通道自检中，真正就绪后即可畅聊</p>
     `;
   }
   if (qrImg) qrImg.style.display = "none";
   if (banner) banner.style.display = "flex";
-  if (status) status.textContent = "大肥鱼已激活·在线中";
+  if (status) status.textContent = "正在连通大模型…";
   if (radarTag) {
-    radarTag.innerHTML = '<span class="radar-ping" style="background: #10b981;"></span><span style="color: #10b981; font-weight: 600;">大肥鱼状态：在线服务中</span>';
+    radarTag.innerHTML = '<span class="radar-ping" style="background: #f59e0b;"></span><span style="color: #f59e0b; font-weight: 600;">大肥鱼状态：QQ已登录，正在连通大模型...</span>';
+  }
+}
+
+function setChatReadyUI() {
+  const qrImg = document.getElementById("qr-image");
+  const placeholder = document.getElementById("qr-placeholder");
+  const banner = document.getElementById("success-banner");
+  const status = document.getElementById("service-status");
+  const radarTag = document.querySelector(".qr-radar-tag");
+
+  if (placeholder) {
+    placeholder.style.display = "flex";
+    placeholder.style.flexDirection = "column";
+    placeholder.style.alignItems = "center";
+    placeholder.style.justifyContent = "center";
+    placeholder.style.padding = "0";
+    placeholder.style.width = "100%";
+    placeholder.innerHTML = `
+      <div class="active-mascot-wrapper" style="position: relative; width: 92px; height: 112px; margin: 2px auto 8px auto; animation: petFloat 4s ease-in-out infinite;">
+        <img src="img/dafeiyu_chibi.png" alt="暴喵大肥鱼" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(56, 189, 248, 0.35));">
+        <span style="position: absolute; bottom: 2px; right: 8px; width: 12px; height: 12px; background: #10b981; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 0 6px #10b981;"></span>
+      </div>
+      <p style="color: #10b981; font-weight: 700; font-size: 15px; margin: 0 0 3px 0; white-space: nowrap; text-align: center; letter-spacing: 0.5px;">大肥鱼已就绪 · 可随时对话</p>
+      <p style="color: #64748b; font-size: 11.5px; margin: 0; white-space: nowrap; text-align: center;">已通过大模型自检，快在 QQ 发消息对话吧！</p>
+    `;
+  }
+  if (qrImg) qrImg.style.display = "none";
+  if (banner) banner.style.display = "flex";
+  if (status) status.textContent = "大肥鱼已就绪·可开始对话";
+  if (radarTag) {
+    radarTag.innerHTML = '<span class="radar-ping" style="background: #10b981;"></span><span style="color: #10b981; font-weight: 600;">大肥鱼状态：在线服务中（已具备对话能力）</span>';
   }
 }
 
@@ -539,6 +570,10 @@ async function checkServiceStatus() {
     const data = await res.json();
     if (!data.success) return;
 
+    if (data.is_chat_ready) {
+      setChatReadyUI();
+      return;
+    }
     if (data.is_logged_in) {
       setLoginSuccessUI();
       return;
@@ -687,16 +722,22 @@ function initEventStream() {
         appendLog("[NapCat] 已捕获登录二维码，请使用手机 QQ 扫码。");
       } else if (payload.type === "login_success") {
         setLoginSuccessUI();
-        appendLog("🎉 [系统] 登录成功！大肥鱼已正式就绪！");
+        appendLog("🎉 [系统] QQ 账号登录成功！正在建立通信并自检大模型通道...");
+      } else if (payload.type === "chat_ready") {
+        setChatReadyUI();
+        appendLog("🚀 [系统] " + (payload.message || "大模型自检通过，大肥鱼现已真正就绪，可以在 QQ 发送消息开始对话啦！"));
       } else if (payload.type === "service_error") {
         const statusEl = document.getElementById("service-status");
         if (statusEl) statusEl.textContent = "启动异常";
         appendLog("[系统] 服务启动异常: " + (payload.message || ""));
       } else if (payload.type === "llm_test") {
         if (payload.success) {
-          appendLog("✅ [系统] " + (payload.message || "LLM API 连通正常"));
+          setChatReadyUI();
+          appendLog("✅ [系统] " + (payload.message || "大模型通道连通正常"));
         } else {
-          appendLog("❌ [系统] " + (payload.message || "LLM API 检测失败"));
+          const statusEl = document.getElementById("service-status");
+          if (statusEl) statusEl.textContent = "大模型连通异常";
+          appendLog("❌ [系统] " + (payload.message || "大模型通道检测未通过，请检查 API Key 或网络"));
         }
       }
     } catch (err) {
