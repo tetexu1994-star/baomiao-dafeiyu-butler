@@ -311,73 +311,137 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 人设规格标语横幅 */
-.spec-banner {
-  background: linear-gradient(135deg, rgba(67, 56, 202, 0.3) 0%, rgba(30, 41, 59, 0.5) 100%);
-  border: 1px solid rgba(129, 140, 248, 0.35);
-  border-radius: 14px;
-  padding: 16px 20px;
+/* ==========================================================================
+   二次元伴侣立绘与台词栏 (Anime Companion Stage Banner)
+   ========================================================================== */
+.anime-companion-banner {
+  background: linear-gradient(135deg, rgba(35, 42, 80, 0.85) 0%, rgba(26, 31, 58, 0.95) 100%);
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  border-radius: 16px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.anime-companion-banner::after {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.companion-figure-wrap {
+  width: 90px;
+  height: 120px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  animation: floatBob 3s ease-in-out infinite;
+}
+
+@keyframes floatBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.companion-chibi-img {
+  width: auto;
+  height: 100%;
+  max-width: 90px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+}
+
+.companion-aura-glow {
+  position: absolute;
+  bottom: 0;
+  width: 70px;
+  height: 18px;
+  background: radial-gradient(ellipse, rgba(56, 189, 248, 0.35) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.companion-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.companion-dialog-bubble {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  border-radius: 12px;
+  padding: 9px 14px;
+  position: relative;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  align-self: flex-start;
+  max-width: 95%;
+}
+
+.companion-dialog-bubble .bubble-arrow {
+  position: absolute;
+  left: -8px;
+  top: 14px;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 8px solid #ffffff;
+}
+
+.dialog-quote {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2448;
+  line-height: 1.45;
+}
+
+.companion-spec-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.spec-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.spec-symbol {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  border: 1px solid rgba(129, 140, 248, 0.4);
-  padding: 2px;
-  overflow: hidden;
-  background: var(--brand-gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-.spec-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 10px;
-}
-
-.spec-details h3 {
-  font-size: 15px;
+.spec-text h3 {
+  font-size: 14px;
   font-weight: 700;
   color: #ffffff;
 }
 
-.spec-details p {
-  font-size: 12.5px;
+.spec-text p {
+  font-size: 11.5px;
   color: var(--text-secondary);
-  margin-top: 3px;
+  margin-top: 2px;
 }
 
 .spec-pills {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .badge-feature {
-  background: rgba(99, 102, 241, 0.2);
-  border: 1px solid rgba(129, 140, 248, 0.35);
+  background: rgba(99, 102, 241, 0.22);
+  border: 1px solid rgba(129, 140, 248, 0.4);
   color: #e0e7ff;
   font-size: 11px;
   font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 16px;
+  padding: 3px 9px;
+  border-radius: 14px;
 }
 
 /* 账号配置栅格 */
@@ -757,10 +821,10 @@ body {
   color: var(--gold-accent);
 }
 
-/* 通用按钮 */
+/* 通用按钮 (二次元游戏轻快质感) */
 .btn {
-  padding: 11px 24px;
-  border-radius: 10px;
+  padding: 11px 26px;
+  border-radius: 24px;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
@@ -769,19 +833,24 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   font-family: inherit;
 }
 
 .btn-brand {
   background: var(--brand-gradient);
   color: #ffffff;
-  box-shadow: var(--brand-glow);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
 }
 
 .btn-brand:hover:not(:disabled) {
   filter: brightness(1.15);
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 26px rgba(99, 102, 241, 0.6);
+}
+
+.btn-brand:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
 }
 
 .btn-brand:disabled {
@@ -796,15 +865,16 @@ body {
 }
 
 .btn-outline {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-medium);
   color: var(--text-secondary);
 }
 
 .btn-outline:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
 }
 
 .btn-danger-soft {
