@@ -158,8 +158,12 @@ class ComponentDownloader:
             return shutil.which("astrbot")
         return None
 
-    @staticmethod
-    def _python_command():
+    def _python_command(self):
+        # 0. 检查沙箱专属 Python 环境
+        sandbox_py = os.path.join(self.install_dir, "python", "python.exe")
+        if os.path.isfile(sandbox_py):
+            return [sandbox_py]
+
         # 1. 优先检查打包内置的 Python 环境
         bundled_py = ComponentDownloader._find_bundled_file(os.path.join("python", "python.exe"))
         if bundled_py and os.path.isfile(bundled_py):
@@ -220,6 +224,85 @@ class ComponentDownloader:
             if path:
                 return [path]
         return None
+
+    def ensure_python_environment(self):
+        # 1. 优先检查现存的有效 Python 3.10+
+        py_cmd = self._python_command()
+        if py_cmd:
+            return py_cmd
+
+        if not sys.platform.startswith("win"):
+            raise RuntimeError("未检测到 Python 3.10+ 环境，请先安装 Python 3.10+")
+
+        self.log("🚀 检测到本机尚未安装 Python，正在全自动下载部署专属 Python 3.12 引擎...", 20)
+
+        # 2. 准备下载路径与极速源列表
+        installer_urls = [
+            ("淘宝/阿里极速镜像源", "https://registry.npmmirror.com/-/binary/python/3.12.8/python-3.12.8-amd64.exe"),
+            ("华为云高速镜像源", "https://mirrors.huaweicloud.com/python/3.12.8/python-3.12.8-amd64.exe"),
+            ("Python 官方源", "https://www.python.org/ftp/python/3.12.8/python-3.12.8-amd64.exe"),
+        ]
+
+        cache_dir = os.path.join(self.install_dir, "cache")
+        os.makedirs(cache_dir, exist_ok=True)
+        installer_path = os.path.join(cache_dir, "python-3.12.8-amd64.exe")
+
+        download_success = False
+        if os.path.isfile(installer_path) and os.path.getsize(installer_path) > 20 * 1024 * 1024:
+            download_success = True
+        else:
+            for label, url in installer_urls:
+                try:
+                    self.log(f"正在从【{label}】极速下载 Python 3.12 安装包 (约25MB)...", 25)
+                    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=40) as resp:
+                        total_size = int(resp.headers.get("content-length", 0))
+                        downloaded = 0
+                        with open(installer_path, "wb") as f:
+                            while True:
+                                chunk = resp.read(64 * 1024)
+                                if not chunk:
+                                    break
+                                f.write(chunk)
+                                downloaded += len(chunk)
+                                if total_size > 0:
+                                    pct = 25 + int((downloaded / total_size) * 15)
+                                    self.log(f"正在下载 Python 引擎: {downloaded // (1024 * 1024)}MB / {total_size // (1024 * 1024)}MB ({pct}%)", pct)
+                    if os.path.isfile(installer_path) and os.path.getsize(installer_path) > 20 * 1024 * 1024:
+                        download_success = True
+                        break
+                except Exception as e:
+                    self.log(f"【{label}】下载出错: {e}，正在尝试备用镜像...")
+
+        if not download_success:
+            raise RuntimeError("自动下载 Python 引擎失败，请检查网络连接")
+
+        # 3. 执行无感静默安装：无需管理员权限，安装到专属沙箱目录
+        self.log("正在全自动无感静默部署 Python 3.12 运行环境...", 42)
+        py_target_dir = os.path.join(self.install_dir, "python")
+        install_cmd = [
+            installer_path,
+            "/quiet",
+            "InstallAllUsers=0",
+            f"TargetDir={py_target_dir}",
+            "PrependPath=1",
+            "Include_pip=1",
+            "Include_test=0",
+            "Shortcuts=0",
+        ]
+        self._run(install_cmd)
+
+        sandbox_py = os.path.join(py_target_dir, "python.exe")
+        if os.path.isfile(sandbox_py):
+            self.log("✅ 专属 Python 3.12 引擎已自动装配完毕！", 45)
+            return [sandbox_py]
+
+        local_py = os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python312\python.exe")
+        if os.path.isfile(local_py):
+            self.log("✅ 专属 Python 3.12 引擎已自动装配完毕！", 45)
+            return [local_py]
+
+        raise RuntimeError("Python 3.12 静默安装未生成可执行文件，请尝试以管理员身份运行。")
 
     @staticmethod
     def _venv_python(venv_dir):
@@ -299,10 +382,8 @@ class ComponentDownloader:
                 self.log("检测到本地内置 AstrBot 环境，正在复制装配 (0流量)...", 60)
                 shutil.copytree(bundle_astrbot_dir, target_dir, dirs_exist_ok=True)
             else:
-                python_command = self._python_command()
-                if not python_command:
-                    raise RuntimeError("AstrBot 需要 Python 3.10+ 环境，请先安装 Python 并勾选 Add to PATH")
-                self.log("正在创建 AstrBot 隔离虚拟环境...")
+                python_command = self.ensure_python_environment()
+                self.log("正在创建 AstrBot 隔离虚拟环境...", 50)
                 result = self._run([*python_command, "-m", "venv", venv_dir])
                 if result.returncode != 0:
                     raise RuntimeError(f"创建 Python 环境失败: {result.stdout[-800:]}")
@@ -320,6 +401,20 @@ class ComponentDownloader:
             )
             if result.returncode != 0:
                 raise RuntimeError(f"安装 AstrBot 失败: {result.stdout[-800:]}")
+
+        # 自动补全 Windows pywin32 系统 DLL 依赖
+        if sys.platform.startswith("win"):
+            try:
+                pywin_sys32 = os.path.join(venv_dir, "Lib", "site-packages", "pywin32_system32")
+                if os.path.isdir(pywin_sys32):
+                    for dll in os.listdir(pywin_sys32):
+                        if dll.lower().endswith(".dll"):
+                            src_dll = os.path.join(pywin_sys32, dll)
+                            dst_dll = os.path.join(venv_dir, dll)
+                            if not os.path.isfile(dst_dll):
+                                shutil.copy2(src_dll, dst_dll)
+            except Exception:
+                pass
 
         env = os.environ.copy()
         env["ASTRBOT_ROOT"] = target_dir
