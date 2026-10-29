@@ -424,6 +424,8 @@ class ProcessManager:
                 if not self._wait_for_port(self.onebot_port, timeout=45):
                     if not self._process_is_alive(self.astrbot_proc):
                         self.log("AstrBot", f"OneBot 反向 WebSocket 端口 {self.onebot_port} 启动失败")
+                        if self.qr_callback:
+                            self.qr_callback({"type": "status", "status": "failed", "message": f"OneBot 端口 {self.onebot_port} 启动失败"})
                     else:
                         self.log("AstrBot", f"OneBot 端口 {self.onebot_port} 正在准备中...")
                 else:

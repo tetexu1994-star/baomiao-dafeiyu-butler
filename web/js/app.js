@@ -571,6 +571,10 @@ function initEventStream() {
       } else if (payload.type === "login_success") {
         setLoginSuccessUI();
         appendLog("🎉 [系统] 登录成功！大肥鱼已正式就绪！");
+      } else if (payload.type === "service_error") {
+        const statusEl = document.getElementById("service-status");
+        if (statusEl) statusEl.textContent = "启动异常";
+        appendLog("[系统] 服务启动异常: " + (payload.message || ""));
       }
     } catch (err) {
       console.error(err);

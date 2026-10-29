@@ -231,7 +231,7 @@ class ComponentDownloader:
             path = shutil.which(candidate)
             if path:
                 return [path]
-            return None
+        return None
 
     def ensure_python_environment(self):
         # 1. 优先检查现存的有效 Python 3.12+

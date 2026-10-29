@@ -130,6 +130,8 @@ def on_qr_event(data):
         broadcast_event({"type": "qr", "data": data.get("data")})
     elif data.get("status") == "success":
         broadcast_event({"type": "login_success"})
+    elif data.get("status") == "failed":
+        broadcast_event({"type": "service_error", "message": data.get("message", "")})
 
 
 def validate_config(data, require_complete=False):
