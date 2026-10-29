@@ -58,26 +58,39 @@ class ProcessManager:
         return proc is not None and proc.poll() is None
 
     def _astrbot_command(self):
+        astrbot_dir = os.path.join(self.install_dir, "AstrBot")
+        candidates = [
+            os.path.join(astrbot_dir, "runtime", "Scripts", "astrbot.exe"),
+            os.path.join(astrbot_dir, "Scripts", "astrbot.exe"),
+            os.path.join(astrbot_dir, "AstrBot.exe"),
+            os.path.join(astrbot_dir, "astrbot.exe"),
+            r"C:\Users\qeeyou\Python312\Scripts\astrbot.exe",
+            os.path.expandvars(r"%USERPROFILE%\Python312\Scripts\astrbot.exe"),
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python312\Scripts\astrbot.exe"),
+            r"C:\Python312\Scripts\astrbot.exe",
+        ]
+        for p in candidates:
+            if os.path.isfile(p):
+                return [p, "run"], astrbot_dir
+
         venv_python = os.path.join(
-            self.install_dir,
-            "AstrBot",
+            astrbot_dir,
             ".venv",
             "Scripts" if sys.platform.startswith("win") else "bin",
             "python.exe" if sys.platform.startswith("win") else "python",
         )
         if os.path.exists(venv_python):
-            return [venv_python, "-m", "astrbot", "run"], self.install_dir
+            return [venv_python, "-m", "astrbot.cli", "run"], astrbot_dir
 
-        astrbot_dir = os.path.join(self.install_dir, "AstrBot")
-        for name in ("AstrBot.exe", "astrbot.exe"):
-            target = os.path.join(astrbot_dir, name)
-            if os.path.exists(target):
-                return [target], astrbot_dir
+        which_astr = shutil.which("astrbot")
+        if which_astr:
+            return [which_astr, "run"], astrbot_dir
+
         for name in ("main.py", "run.py"):
             target = os.path.join(astrbot_dir, name)
             if os.path.exists(target):
                 return [sys.executable, target], astrbot_dir
-        return [sys.executable, "-m", "astrbot", "run"], astrbot_dir
+        return [sys.executable, "-m", "astrbot.cli", "run"], astrbot_dir
 
     def start_astrbot(self):
         if self._process_is_alive(self.astrbot_proc):

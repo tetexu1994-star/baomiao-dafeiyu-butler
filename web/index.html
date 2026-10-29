@@ -3,222 +3,199 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>大肥鱼一键接入QQ</title>
+  <title>大肥鱼领养舱 · AI 赛博伴侣一键接入</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" type="image/png" href="img/dafeiyu_logo.png">
 </head>
 <body>
   <div class="commercial-app">
     
-    <!-- 商业级一体化顶栏 (Integrated Header) -->
+    <!-- 顶栏：大肥鱼领养舱 -->
     <header class="app-header">
       <div class="brand-cluster">
-        <div class="brand-emblem">
+        <div class="brand-avatar-box">
           <img src="img/dafeiyu_logo.png" alt="大肥鱼" class="brand-avatar-img">
         </div>
         <div class="brand-info">
-          <div class="brand-headline">
-            <h1>大肥鱼一键接入QQ</h1>
-            <span class="vip-shield">👑 VIP</span>
-          </div>
-          <p class="brand-tagline">暴喵大肥鱼 AI 赛博伴侣 · 智能自动化集群部署工具</p>
+          <span class="brand-pretitle">DEEPSEEK FAN COMPANION</span>
+          <h1 class="brand-title">大肥鱼领养舱</h1>
         </div>
       </div>
 
       <div class="header-status-tray">
-        <div class="engine-badge">
-          <span class="engine-icon">⚡</span>
-          <span>NapCat 4.18 + AstrBot 4.29</span>
-        </div>
         <div class="system-status-indicator">
           <span class="ping-dot"></span>
-          <span id="service-status">服务就绪</span>
+          <span id="service-status">本机模式</span>
         </div>
+        <button class="btn-text-nav" onclick="openHelpModal()">怎么领养？</button>
       </div>
     </header>
 
-    <!-- 一体化沉浸式步骤流导轨 (Integrated Stage Stepper) -->
+    <!-- 步骤导航条 (01 认识主人 -> 02 准备小窝 -> 03 唤醒大肥鱼) -->
     <nav class="stepper-track">
       <button class="step-chip step-item active" id="step-tab-1" onclick="goToStep(1)">
         <span class="chip-index">01</span>
-        <span class="chip-label">账号与算力接入</span>
+        <div class="chip-meta">
+          <span class="chip-title">认识主人</span>
+          <span class="chip-sub">填写基本信息</span>
+        </div>
       </button>
       <div class="step-connector"></div>
       <button class="step-chip step-item" id="step-tab-2" onclick="goToStep(2)">
         <span class="chip-index">02</span>
-        <span class="chip-label">自动化组件构筑</span>
+        <div class="chip-meta">
+          <span class="chip-title">准备小窝</span>
+          <span class="chip-sub">自动完成部署</span>
+        </div>
       </button>
       <div class="step-connector"></div>
       <button class="step-chip step-item" id="step-tab-3" onclick="goToStep(3)">
         <span class="chip-index">03</span>
-        <span class="chip-label">扫码上线激活</span>
-      </button>
-      <div class="step-connector"></div>
-      <button class="step-chip step-item" id="step-tab-4" onclick="goToStep(4)">
-        <span class="chip-index">04</span>
-        <span class="chip-label">核心互动口令</span>
+        <div class="chip-meta">
+          <span class="chip-title">唤醒大肥鱼</span>
+          <span class="chip-sub">手机扫码登录</span>
+        </div>
       </button>
     </nav>
 
-    <!-- 主视口区域 (Main Stage Viewport) -->
+    <!-- 主视口区域 -->
     <main class="main-stage">
       
-      <!-- STAGE 1: 凭证与算力接入 -->
+      <!-- STAGE 1: 认识主人 -->
       <section class="stage-card card active" id="card-step-1">
-        
-        <!-- 二次元伴侣立绘与台词栏 (Anime Companion Stage Banner) -->
-        <div class="anime-companion-banner">
-          <div class="companion-figure-wrap">
-            <img src="img/dafeiyu_chibi.png" alt="大肥鱼立绘" class="companion-chibi-img">
-            <span class="companion-aura-glow"></span>
-          </div>
-          <div class="companion-content">
-            <div class="companion-dialog-bubble">
-              <span class="bubble-arrow"></span>
-              <p class="dialog-quote">「主人～我是你的专属大肥鱼！已为你准备好三形态自适应协议与满血算力，点击下一步即可无感接入 QQ 啦～(๑•̀ㅂ•́)و✧」</p>
-            </div>
-            <div class="companion-spec-row">
-              <div class="spec-text">
-                <h3>大肥鱼 AI 专属赛博伴侣引擎</h3>
-                <p>自研双形态隔离逻辑与大白饭成长协议 · 暴喵 AI 管家专线直连</p>
+        <div class="adopt-workspace-grid">
+          
+          <!-- 左侧：大肥鱼看板与领养说明 -->
+          <div class="adopt-hero-card">
+            <div class="hero-tagline">STEP 01 · 领养准备</div>
+            <h2 class="hero-headline">先让大肥鱼记住你</h2>
+            <p class="hero-subtext">只需要准备两个 QQ。AI 默认走暴喵，也可以随时切换到 DeepSeek。</p>
+            
+            <!-- 修复“图是不全的”：超清完整无裁剪大肥鱼展示立牌 -->
+            <div class="dafeiyu-showcase-card">
+              <div class="showcase-bubble-header">
+                <span class="bubble-sparkle">✨</span>
+                <span class="bubble-caption">我是吃白饭的大肥鱼！</span>
+                <span class="bubble-rice">🍚</span>
               </div>
-              <div class="spec-pills">
-                <span class="badge-feature">✨ 三形态自适应</span>
-                <span class="badge-feature">🍚 好感度体系 LV1~LV5</span>
-                <span class="badge-feature">👑 主人独占白名单</span>
-                <span class="badge-feature">🛡️ 拟人呼吸防风控</span>
+              <div class="showcase-figure-stage">
+                <img src="img/dafeiyu_chibi.png" alt="吃白饭的大肥鱼立绘" class="showcase-chibi-img">
+              </div>
+              <div class="showcase-role-pill">
+                <span>蓝色大肥鱼 · 爱吃白饭的鲸鱼娘</span>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- 账号绑定栅格 (Account Grid) -->
-        <div class="field-grid">
-          <div class="glass-input-card">
-            <div class="card-caption">
-              <span class="caption-icon">👑</span>
-              <span class="caption-title">主人大号 QQ</span>
-              <span class="role-tag master">最高权限所有者</span>
+            <!-- 6枚特色特征胶囊 -->
+            <div class="tag-matrix">
+              <span class="matrix-pill">傲娇又天然呆</span>
+              <span class="matrix-pill">喜欢摸鱼和白饭</span>
+              <span class="matrix-pill">准备就绪就会醒</span>
+              <span class="matrix-pill">密钥不回显</span>
+              <span class="matrix-pill">仅保存在本机</span>
+              <span class="matrix-pill">随时可以返回修改</span>
             </div>
-            <div class="input-glow-box">
-              <input type="text" id="master_qq" placeholder="输入常用 QQ 号（如：10001）" autocomplete="off">
-            </div>
-            <p class="field-hint">大肥鱼唯一认主对象。群聊唯命是从，私聊白名单独占，杜绝群友蹭用额度。</p>
           </div>
 
-          <div class="glass-input-card">
-            <div class="card-caption">
-              <span class="caption-icon">🤖</span>
-              <span class="caption-title">机器人小号 QQ</span>
-              <span class="role-tag bot">伴侣躯体</span>
+          <!-- 右侧：表单配置与通道选择 -->
+          <div class="adopt-form-card">
+            
+            <!-- 主人大号 QQ -->
+            <div class="form-block">
+              <div class="block-label-row">
+                <label for="master_qq">你的 QQ（主人）</label>
+                <span class="field-badge required">必填</span>
+              </div>
+              <div class="input-glow-box">
+                <input type="text" id="master_qq" placeholder="例如 12345678" autocomplete="off">
+              </div>
+              <p class="block-hint">大肥鱼会记住这个 QQ，并把你设为管理员。</p>
             </div>
-            <div class="input-glow-box">
-              <input type="text" id="bot_qq" placeholder="准备作为大肥鱼的备用小号 QQ" autocomplete="off">
+
+            <!-- 机器人小号 QQ -->
+            <div class="form-block">
+              <div class="block-label-row">
+                <label for="bot_qq">大肥鱼的 QQ（小号）</label>
+                <span class="field-badge required">必填</span>
+              </div>
+              <div class="input-glow-box">
+                <input type="text" id="bot_qq" placeholder="准备用来扫码登录的闲置 QQ" autocomplete="off">
+              </div>
+              <p class="block-hint">稍后用手机登录这个 QQ，它就是大肥鱼的“身体”。</p>
             </div>
-            <p class="field-hint">建议使用闲置小号。部署完成后使用手机 QQ 扫码即可完成无感接管。</p>
-          </div>
-        </div>
 
-        <!-- AI 算力与模型源通道 (Provider Switcher) -->
-        <div class="provider-suite">
-          <div class="suite-title">
-            <span class="title-icon">⚡</span>
-            <span>AI 算力与网络通道（推荐使用暴喵专线）</span>
-          </div>
-
-          <div class="provider-deck">
-            <!-- 暴喵专线通道：官方主推 -->
-            <div class="deck-option active" data-provider="baomiao" onclick="selectProvider('baomiao')">
-              <div class="option-check"></div>
-              <div class="option-body">
-                <div class="option-row">
-                  <span class="option-name">暴喵 AI 管家专属通道</span>
-                  <span class="tag-flag ship">👑 官方推荐 · 新用户送免费额度</span>
+            <!-- AI 通道 -->
+            <div class="form-block">
+              <div class="block-label-row">
+                <span>AI 通道</span>
+                <span class="field-badge connected">已接入</span>
+              </div>
+              <div class="provider-switch-deck">
+                <div class="provider-radio-card active" data-provider="baomiao" onclick="selectProvider('baomiao')">
+                  <div class="radio-dot"></div>
+                  <div class="radio-info">
+                    <span class="radio-name">暴喵 API</span>
+                    <span class="radio-desc">推荐 · 请求地址已配置</span>
+                  </div>
                 </div>
-                <p class="option-desc">暴喵 AI 管家专线直连，新用户可免费领取算力额度，0门槛免梯免买 Key，满血超低延迟响应。</p>
-              </div>
-            </div>
-
-            <!-- DeepSeek 官方通道：备用 -->
-            <div class="deck-option" data-provider="deepseek" onclick="selectProvider('deepseek')">
-              <div class="option-check"></div>
-              <div class="option-body">
-                <div class="option-row">
-                  <span class="option-name">自备 DeepSeek 官方 API Key</span>
-                  <span class="tag-flag neutral">极客自备通道</span>
-                </div>
-                <p class="option-desc">使用自己在 DeepSeek 开放平台创建的 API Key，需自行充值计费。</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- 暴喵 Key 输入与下载管家引导 -->
-          <div class="key-dock" id="baomiao-key-container">
-            <div class="dock-label-row">
-              <label for="baomiao_api_key">暴喵专属 API Key / Token：</label>
-              <span class="dock-hint">下载暴喵 AI 管家免费领取</span>
-            </div>
-            <div class="input-glow-box with-action">
-              <input type="password" id="baomiao_api_key" placeholder="输入暴喵专属 Token（如：bm-xxxxxxxx...）" autocomplete="off">
-              <button type="button" class="btn-input-icon" onclick="toggleBaomiaoKeyVisibility()" title="查看密钥">👁️</button>
-            </div>
-
-            <!-- 商业级引导下载横幅 (Conversion Banner) -->
-            <div class="growth-banner">
-              <div class="growth-left">
-                <div class="growth-avatar">
-                  <img src="img/dafeiyu_logo.png" alt="大肥鱼" class="growth-avatar-img">
-                </div>
-                <div class="growth-copy">
-                  <h4>还没有 Token？下载暴喵 AI 管家免费领额度</h4>
-                  <p>新用户下载安装「暴喵 AI 管家」客户端，即可免费领取大肥鱼专属 AI 算力额度，0门槛直接畅玩！</p>
+                <div class="provider-radio-card" data-provider="deepseek" onclick="selectProvider('deepseek')">
+                  <div class="radio-dot"></div>
+                  <div class="radio-info">
+                    <span class="radio-name">DeepSeek</span>
+                    <span class="radio-desc">自备官方 Key</span>
+                  </div>
                 </div>
               </div>
-              <a href="https://www.baomiao.com/" target="_blank" class="btn-growth-action">
-                <span>📥 立即下载暴喵 AI 管家免费领额度</span>
-              </a>
             </div>
+
+            <!-- 访问密钥 (可留空) -->
+            <div class="form-block">
+              <div class="block-label-row">
+                <label for="baomiao_api_key">访问密钥（可留空）</label>
+                <span class="field-badge optional">选填</span>
+              </div>
+              
+              <!-- 暴喵 Key 输入框 -->
+              <div class="input-glow-box with-action" id="baomiao-key-container">
+                <input type="password" id="baomiao_api_key" placeholder="如果后台发放了密钥，再粘贴到这里" autocomplete="off">
+                <button type="button" class="btn-input-icon" onclick="toggleBaomiaoKeyVisibility()" title="切换明文">显示</button>
+              </div>
+
+              <!-- DeepSeek Key 输入框 -->
+              <div class="input-glow-box with-action" id="deepseek-key-container" style="display: none;">
+                <input type="password" id="api_key" placeholder="请输入以 sk- 开头的 DeepSeek 官方密钥" autocomplete="off">
+                <button type="button" class="btn-input-icon" onclick="toggleKeyVisibility()" title="切换明文">显示</button>
+              </div>
+
+              <p class="block-hint">暴喵请求地址已自动配置；只有接口要求鉴权时才需要填写密钥。</p>
+            </div>
+
+            <!-- 底部提交按钮 -->
+            <div class="form-action-row">
+              <button class="btn btn-adopt-action" onclick="goToStep(2)">
+                <span>下一步，准备小窝</span>
+                <span class="action-arrow">&gt;</span>
+              </button>
+            </div>
+
           </div>
 
-          <!-- DeepSeek 官方 Key 输入 -->
-          <div class="key-dock" id="deepseek-key-container" style="display: none;">
-            <div class="dock-label-row">
-              <label for="api_key">DeepSeek 官方 API Key：</label>
-              <a href="https://platform.deepseek.com" target="_blank" class="dock-link">前往开放平台获取 Key ↗</a>
-            </div>
-            <div class="input-glow-box with-action">
-              <input type="password" id="api_key" placeholder="请输入以 sk- 开头的密钥..." autocomplete="off">
-              <button type="button" class="btn-input-icon" onclick="toggleKeyVisibility()" title="查看密钥">👁️</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 底部主操作条 -->
-        <div class="stage-footer">
-          <div class="stage-notice">
-            <span class="notice-bullet">✦</span>
-            <span>配置信息仅持久化保存在本机，绝不上传第三方服务器</span>
-          </div>
-          <button class="btn btn-brand" onclick="goToStep(2)">
-            <span>保存并进入下一步：极速构筑</span>
-            <span class="btn-arrow">➔</span>
-          </button>
         </div>
       </section>
 
-      <!-- STAGE 2: 自动化组件构筑 -->
+      <!-- STAGE 2: 准备小窝 (自动完成部署) -->
       <section class="stage-card card" id="card-step-2">
         <div class="build-summary-card">
-          <div class="summary-badge">🚀</div>
+          <div class="summary-badge">🏠</div>
           <div class="summary-info">
-            <h3>自动化环境构筑与依赖下载</h3>
-            <p>通过暴喵高速镜像节点下载 NapCat 4.18.41，隔离构筑 Python 3.12 虚拟环境并部署 AstrBot 4.29.3</p>
+            <h3>正在为大肥鱼准备舒适小窝</h3>
+            <p>正在自动配置 NapCat 4.18 与 AstrBot 4.29 运行环境（内置零下载加速，免去繁琐配置）</p>
           </div>
         </div>
 
         <div class="telemetry-bar">
           <div class="telemetry-labels">
-            <span id="status-text">准备就绪，点击下方按钮开始全自动配置...</span>
+            <span id="status-text">准备就绪，点击下方按钮开始一键部署...</span>
             <span id="progress-percent" class="telemetry-num">0%</span>
           </div>
           <div class="telemetry-track">
@@ -233,30 +210,30 @@
               <span class="light yellow"></span>
               <span class="light green"></span>
             </div>
-            <span class="console-name">大肥鱼一键接入部署实时日志</span>
+            <span class="console-name">大肥鱼领养舱实时装配日志</span>
             <button class="btn-console-clear" onclick="clearTerminal()">清屏</button>
           </div>
           <div class="log-terminal" id="log-terminal">
-            <div class="terminal-line">[系统] 大肥鱼一键接入 QQ 引擎已准备就绪...</div>
+            <div class="terminal-line">[系统] 大肥鱼领养舱部署引擎已就绪...</div>
           </div>
         </div>
 
         <div class="stage-footer space-between">
-          <button class="btn btn-outline" onclick="goToStep(1)">⬅️ 返回修改参数</button>
+          <button class="btn btn-outline" onclick="goToStep(1)">&lt; 返回修改参数</button>
           <button class="btn btn-brand" id="btn-start-install" onclick="startInstallation()">
-            <span>🚀 开始全自动构筑并接入大肥鱼</span>
+            <span>🚀 开始自动装配并唤醒大肥鱼</span>
           </button>
         </div>
       </section>
 
-      <!-- STAGE 3: 扫码上线激活 -->
+      <!-- STAGE 3: 唤醒大肥鱼 (手机扫码登录) -->
       <section class="stage-card card" id="card-step-3">
         <div class="activation-grid">
           <div class="qr-dock-card">
             <div class="qr-scanner-box" id="qr-box">
               <div class="qr-placeholder" id="qr-placeholder">
                 <div class="scan-spinner"></div>
-                <p>正在生成 NapCat 快速扫码凭证...</p>
+                <p>正在生成快速扫码授权凭证...</p>
               </div>
               <img id="qr-image" src="" alt="登录二维码" style="display: none;">
             </div>
@@ -300,91 +277,92 @@
         <div class="success-banner" id="success-banner" style="display: none;">
           <div class="success-icon">🎉</div>
           <div class="success-meta">
-            <h3>恭喜！大肥鱼伴侣已成功上线并就绪！</h3>
-            <p>当前处于在线守护状态。大肥鱼仅认你为唯一主人，可随时将小号拉入 QQ 群聊一起玩耍～</p>
+            <h3>太棒啦！大肥鱼已成功唤醒并就绪！</h3>
+            <p>大肥鱼已认你为唯一主人。可随时将小号拉入 QQ 群聊一起玩耍～</p>
           </div>
-          <button class="btn btn-success-action" onclick="goToStep(4)">查看互动口令 ➔</button>
-        </div>
-      </section>
-
-      <!-- STAGE 4: 核心互动口令 -->
-      <section class="stage-card card" id="card-step-4">
-        <div class="cheatsheet-heading">
-          <h3>🎮 暴喵大肥鱼 MAX 常用互动口令表</h3>
-          <p>大肥鱼支持好感度成长、三形态切换与白名单防蹭功能，可在 QQ 私聊或群聊中体验：</p>
-        </div>
-
-        <div class="command-deck">
-          <div class="command-tile">
-            <div class="tile-header">
-              <span class="tile-tag purple">形态切换</span>
-              <code>变大🍚</code>
-            </div>
-            <p class="tile-desc">切换至【清冷御姐态】。成熟优雅，单次25字内极简高冷，宠溺主人。</p>
-            <button class="btn-copy-chip" onclick="copyText('变大🍚')">复制口令</button>
-          </div>
-
-          <div class="command-tile">
-            <div class="tile-header">
-              <span class="tile-tag purple">形态切换</span>
-              <code>变小🍚</code>
-            </div>
-            <p class="tile-desc">切换至【软萌萝莉态】。黏人乖巧、爱撒娇、饭量大，喜欢找主人贴贴求抱抱。</p>
-            <button class="btn-copy-chip" onclick="copyText('变小🍚')">复制口令</button>
-          </div>
-
-          <div class="command-tile">
-            <div class="tile-header">
-              <span class="tile-tag red">隐藏形态</span>
-              <code>暴走⚡</code>
-            </div>
-            <p class="tile-desc">唤醒【战斗军师态】。唤醒 DeepSeek-R1 满血深度思考，硬核解决技术、代码与数据推理。</p>
-            <button class="btn-copy-chip" onclick="copyText('暴走⚡')">复制口令</button>
-          </div>
-
-          <div class="command-tile">
-            <div class="tile-header">
-              <span class="tile-tag amber">好感契约</span>
-              <code>投喂大白饭</code>
-            </div>
-            <p class="tile-desc">主人每日投喂一碗大白饭，好感度经验值 +10，解锁亲密称呼与专属撒娇！</p>
-            <button class="btn-copy-chip" onclick="copyText('投喂大白饭')">复制口令</button>
-          </div>
-
-          <div class="command-tile">
-            <div class="tile-header">
-              <span class="tile-tag emerald">群聊互动</span>
-              <code>偷吃白饭</code>
-            </div>
-            <p class="tile-desc">群友若试图抢饭，触发【大白饭保卫战】彩蛋，大肥鱼用尾巴将群友拍飞！</p>
-            <button class="btn-copy-chip" onclick="copyText('偷吃白饭')">复制口令</button>
-          </div>
-
-          <div class="command-tile">
-            <div class="tile-header">
-              <span class="tile-tag sky">状态查询</span>
-              <code>好感度</code>
-            </div>
-            <p class="tile-desc">查看当前好感等级（初识/依赖/心动/誓约/暴喵真神）与互动累计积分。</p>
-            <button class="btn-copy-chip" onclick="copyText('好感度')">复制口令</button>
-          </div>
+          <button class="btn btn-success-action" onclick="openHelpModal()">查看互动口令 &gt;</button>
         </div>
       </section>
 
     </main>
 
-    <!-- 底部状态条 (Seamless Footer) -->
+    <!-- 底部状态栏 -->
     <footer class="app-footer">
       <div class="footer-left">
         <span class="footer-dot">✦</span>
-        <span>保持本工具后台运行即可保持大肥鱼长期在线</span>
+        <span>配置只保存在这台电脑</span>
       </div>
       <div class="footer-right">
-        <span>存储路径：<code id="display-install-dir">~/BaomiaoDaFeiYu</code></span>
-        <span class="footer-sep">·</span>
-        <span>AI管家出品 © 2026</span>
+        <button class="btn-footer-link" onclick="openHelpModal()">帮助与常见问题</button>
       </div>
     </footer>
+
+    <!-- 帮助与口令模态弹窗 -->
+    <div class="help-modal-overlay" id="help-modal" style="display: none;" onclick="closeHelpModal(event)">
+      <div class="help-modal-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3>🎮 大肥鱼常用互动口令与玩法</h3>
+          <button class="btn-modal-close" onclick="closeHelpModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="command-deck">
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag purple">形态切换</span>
+                <code>变大🍚</code>
+              </div>
+              <p class="tile-desc">切换至【清冷御姐态】。单次25字内极简高冷，宠溺主人。</p>
+              <button class="btn-copy-chip" onclick="copyText('变大🍚')">复制口令</button>
+            </div>
+
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag purple">形态切换</span>
+                <code>变小🍚</code>
+              </div>
+              <p class="tile-desc">切换至【软萌萝莉态】。黏人乖巧、爱撒娇、饭量大，喜欢找主人贴贴。</p>
+              <button class="btn-copy-chip" onclick="copyText('变小🍚')">复制口令</button>
+            </div>
+
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag red">战斗军师</span>
+                <code>暴走⚡</code>
+              </div>
+              <p class="tile-desc">唤醒 DeepSeek-R1 满血深度思考，硬核解决技术、代码与数据推理。</p>
+              <button class="btn-copy-chip" onclick="copyText('暴走⚡')">复制口令</button>
+            </div>
+
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag amber">好感契约</span>
+                <code>投喂大白饭</code>
+              </div>
+              <p class="tile-desc">主人每日投喂一碗大白饭，好感度经验值 +10，解锁亲密称呼！</p>
+              <button class="btn-copy-chip" onclick="copyText('投喂大白饭')">复制口令</button>
+            </div>
+
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag emerald">群聊互动</span>
+                <code>偷吃白饭</code>
+              </div>
+              <p class="tile-desc">群友若试图抢饭，触发【大白饭保卫战】彩蛋，大肥鱼用尾巴将群友拍飞！</p>
+              <button class="btn-copy-chip" onclick="copyText('偷吃白饭')">复制口令</button>
+            </div>
+
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag sky">好感查询</span>
+                <code>好感度</code>
+              </div>
+              <p class="tile-desc">查看当前好感等级（初识/依赖/心动/誓约/AI真神）与互动累计积分。</p>
+              <button class="btn-copy-chip" onclick="copyText('好感度')">复制口令</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </div>
 

@@ -9,6 +9,10 @@ import sys
 import urllib.request
 import zipfile
 
+BAOMIAO_CDN_BASE = os.environ.get("BAOMIAO_CDN_BASE", "https://cdn.baomiao.com/dafeiyu/").strip()
+if BAOMIAO_CDN_BASE and not BAOMIAO_CDN_BASE.endswith("/"):
+    BAOMIAO_CDN_BASE += "/"
+
 GH_PROXIES = [
     "https://ghfast.top/",
     "https://mirror.ghproxy.com/",
@@ -18,10 +22,12 @@ GH_PROXIES = [
 
 NAPCAT_VERSION = "4.18.41"
 ASTRBOT_VERSION = "4.29.3"
+NAPCAT_FILENAME = "NapCat.Shell.Windows.Node.zip"
 NAPCAT_URL = (
     "https://github.com/NapNeko/NapCatQQ/releases/download/"
-    f"{NAPCAT_VERSION}/NapCat.Shell.Windows.Node.zip"
+    f"{NAPCAT_VERSION}/{NAPCAT_FILENAME}"
 )
+NAPCAT_CDN_URL = f"{BAOMIAO_CDN_BASE}{NAPCAT_FILENAME}"
 NAPCAT_SHA256 = "51fbb10e7bcd56b0c2a6de86c37811e7518330e48a137ac689ab1e4d8627d3f0"
 MAX_ARCHIVE_SIZE = 512 * 1024 * 1024
 MAX_EXTRACTED_SIZE = 2 * 1024 * 1024 * 1024
@@ -39,11 +45,17 @@ class ComponentDownloader:
             self.status_callback({"message": message, "progress": progress})
 
     def download_file(self, raw_url, dest_path, expected_sha256=None):
+        urls_to_try = []
+        if BAOMIAO_CDN_BASE and raw_url.endswith(NAPCAT_FILENAME):
+            urls_to_try.append(("暴喵官方国内高速节点", NAPCAT_CDN_URL))
         for proxy in GH_PROXIES:
-            target_url = proxy + raw_url if proxy else raw_url
+            label = f"镜像通道 {proxy}" if proxy else "GitHub 官方直连"
+            urls_to_try.append((label, proxy + raw_url if proxy else raw_url))
+
+        for label, target_url in urls_to_try:
             digest = hashlib.sha256()
             try:
-                self.log(f"正在连接下载源 ({proxy or '官方直连'})...")
+                self.log(f"正在连接下载源 ({label})...")
                 req = urllib.request.Request(target_url, headers={"User-Agent": "BaomiaoButler/1.0"})
                 with urllib.request.urlopen(req, timeout=30) as resp:
                     total_size = int(resp.headers.get("content-length", 0))
@@ -74,7 +86,7 @@ class ComponentDownloader:
             except Exception as exc:
                 if os.path.exists(dest_path):
                     os.remove(dest_path)
-                self.log(f"源 {proxy or '官方直连'} 下载或校验失败: {exc}")
+                self.log(f"源 {label} 下载或校验失败: {exc}")
         return False
 
     @staticmethod
@@ -116,26 +128,75 @@ class ComponentDownloader:
         return None
 
     @staticmethod
+    def _find_astrbot_command(install_dir):
+        astrbot_dir = os.path.join(install_dir, "AstrBot")
+        candidates = [
+            os.path.join(astrbot_dir, ".venv", "Scripts", "python.exe"),
+            os.path.join(astrbot_dir, ".venv", "bin", "python"),
+            os.path.join(astrbot_dir, "runtime", "Scripts", "astrbot.exe"),
+            os.path.join(astrbot_dir, "Scripts", "astrbot.exe"),
+            os.path.join(astrbot_dir, "AstrBot.exe"),
+            os.path.join(astrbot_dir, "astrbot.exe"),
+            r"C:\Users\qeeyou\Python312\Scripts\astrbot.exe",
+            os.path.expandvars(r"%USERPROFILE%\Python312\Scripts\astrbot.exe"),
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python312\Scripts\astrbot.exe"),
+            r"C:\Python312\Scripts\astrbot.exe",
+        ]
+        for p in candidates:
+            if os.path.exists(p):
+                return p
+        if shutil.which("astrbot"):
+            return shutil.which("astrbot")
+        return None
+
+    @staticmethod
     def _python_command():
+        # 1. 优先检查打包内置的 Python 环境
+        bundled_py = ComponentDownloader._find_bundled_file(os.path.join("python", "python.exe"))
+        if bundled_py and os.path.isfile(bundled_py):
+            return [bundled_py]
+
         if sys.platform.startswith("win"):
+            win_candidates = [
+                r"C:\Users\qeeyou\Python312\python.exe",
+                os.path.expandvars(r"%USERPROFILE%\Python312\python.exe"),
+                os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python312\python.exe"),
+                os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python313\python.exe"),
+                r"C:\Python312\python.exe",
+                r"C:\Program Files\Python312\python.exe",
+            ]
+            for p in win_candidates:
+                if os.path.isfile(p):
+                    try:
+                        res = subprocess.run(
+                            [p, "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)"],
+                            capture_output=True,
+                            timeout=5
+                        )
+                        if res.returncode == 0:
+                            return [p]
+                    except Exception:
+                        pass
+
             if shutil.which("py"):
-                try:
-                    res = subprocess.run(
-                        ["py", "-3.12", "-c", "import sys; print(sys.version_info[:2])"],
-                        capture_output=True,
-                        text=True,
-                        timeout=5
-                    )
-                    if res.returncode == 0:
-                        return ["py", "-3.12"]
-                except Exception:
-                    pass
-            for candidate in ("python3.12", "python", "python3"):
+                for ver in ("-3.13", "-3.12", "-3.11", "-3.10"):
+                    try:
+                        res = subprocess.run(
+                            ["py", ver, "-c", "import sys; print(sys.version_info[:2])"],
+                            capture_output=True,
+                            text=True,
+                            timeout=5
+                        )
+                        if res.returncode == 0:
+                            return ["py", ver]
+                    except Exception:
+                        pass
+            for candidate in ("python3.12", "python3.13", "python3.11", "python3.10", "python", "python3"):
                 path = shutil.which(candidate)
                 if path:
                     try:
                         res = subprocess.run(
-                            [path, "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"],
+                            [path, "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)"],
                             timeout=5
                         )
                         if res.returncode == 0:
@@ -143,9 +204,9 @@ class ComponentDownloader:
                     except Exception:
                         pass
             return None
-        if sys.version_info >= (3, 12) and not getattr(sys, "frozen", False):
+        if sys.version_info >= (3, 10) and not getattr(sys, "frozen", False):
             return [sys.executable]
-        for candidate in ("python3.12", "python3", "python"):
+        for candidate in ("python3.12", "python3.11", "python3.10", "python3", "python"):
             path = shutil.which(candidate)
             if path:
                 return [path]
@@ -192,24 +253,53 @@ class ComponentDownloader:
 
     def install_astrbot(self):
         target_dir = os.path.join(self.install_dir, "AstrBot")
-        venv_dir = os.path.join(target_dir, ".venv")
-        venv_python = self._venv_python(venv_dir)
         os.makedirs(target_dir, exist_ok=True)
 
+        # 检查是否已有现成的 AstrBot
+        existing_cmd = self._find_astrbot_command(self.install_dir)
+        if existing_cmd:
+            self.log(f"✅ 检测到已就绪的 AstrBot 环境，跳过安装。", 85)
+            env = os.environ.copy()
+            env["ASTRBOT_ROOT"] = target_dir
+            env["ASTRBOT_DASHBOARD_INITIAL_PASSWORD"] = self._dashboard_password()
+            if existing_cmd.lower().endswith("astrbot.exe"):
+                self._run([existing_cmd, "init", "--yes"], cwd=target_dir, env=env)
+            else:
+                self._run([existing_cmd, "-m", "astrbot.cli", "init", "--yes"], cwd=target_dir, env=env)
+            return True
+
+        venv_dir = os.path.join(target_dir, ".venv")
+        venv_python = self._venv_python(venv_dir)
+
         if not os.path.exists(venv_python):
-            python_command = self._python_command()
-            if not python_command:
-                raise RuntimeError("AstrBot 4.29.3 需要 Python 3.12，请先安装后重试")
-            self.log("正在创建 AstrBot Python 3.12 虚拟环境...")
-            result = self._run([*python_command, "-m", "venv", venv_dir])
-            if result.returncode != 0:
-                raise RuntimeError(f"创建 Python 环境失败: {result.stdout[-800:]}")
+            # 检查是否有本地内置 AstrBot 运行环境 (方案一：内置免下载)
+            bundle_astrbot_zip = self._find_bundled_file("AstrBot.zip")
+            bundle_astrbot_dir = self._find_bundled_file("AstrBot")
+            if bundle_astrbot_zip:
+                self.log("检测到本地内置 AstrBot 环境，正在解压部署 (0流量)...", 60)
+                self.extract_zip(bundle_astrbot_zip, target_dir)
+            elif bundle_astrbot_dir and os.path.isdir(bundle_astrbot_dir):
+                self.log("检测到本地内置 AstrBot 环境，正在复制装配 (0流量)...", 60)
+                shutil.copytree(bundle_astrbot_dir, target_dir, dirs_exist_ok=True)
+            else:
+                python_command = self._python_command()
+                if not python_command:
+                    raise RuntimeError("AstrBot 需要 Python 3.10+ 环境，请先安装 Python 并勾选 Add to PATH")
+                self.log("正在创建 AstrBot 隔离虚拟环境...")
+                result = self._run([*python_command, "-m", "venv", venv_dir])
+                if result.returncode != 0:
+                    raise RuntimeError(f"创建 Python 环境失败: {result.stdout[-800:]}")
 
         result = self._run([venv_python, "-c", "import astrbot"])
         if result.returncode != 0:
-            self.log(f"正在安装 AstrBot {ASTRBOT_VERSION}（首次安装可能需要几分钟）...")
+            self.log(f"正在从国内镜像源安装 AstrBot {ASTRBOT_VERSION}...")
             result = self._run(
-                [venv_python, "-m", "pip", "install", "--no-input", f"AstrBot=={ASTRBOT_VERSION}"]
+                [
+                    venv_python, "-m", "pip", "install", "--no-input",
+                    "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
+                    "--trusted-host", "pypi.tuna.tsinghua.edu.cn",
+                    f"AstrBot=={ASTRBOT_VERSION}"
+                ]
             )
             if result.returncode != 0:
                 raise RuntimeError(f"安装 AstrBot 失败: {result.stdout[-800:]}")
@@ -217,15 +307,38 @@ class ComponentDownloader:
         env = os.environ.copy()
         env["ASTRBOT_ROOT"] = target_dir
         env["ASTRBOT_DASHBOARD_INITIAL_PASSWORD"] = self._dashboard_password()
-        result = self._run([venv_python, "-m", "astrbot", "init", "--yes"], cwd=target_dir, env=env)
+        result = self._run([venv_python, "-m", "astrbot.cli", "init", "--yes"], cwd=target_dir, env=env)
+        if result.returncode != 0:
+            result = self._run([venv_python, "-m", "astrbot", "init", "--yes"], cwd=target_dir, env=env)
+        self.log(f"✅ AstrBot {ASTRBOT_VERSION} 已安装；管理密码文件: {self._dashboard_password_file()}", 85)
+        return True
         if result.returncode != 0:
             raise RuntimeError(f"初始化 AstrBot 失败: {result.stdout[-800:]}")
         self.log(f"✅ AstrBot {ASTRBOT_VERSION} 已安装；管理密码文件: {self._dashboard_password_file()}", 85)
         return True
 
+    @staticmethod
+    def _find_bundled_file(name):
+        candidates = []
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+            candidates.append(os.path.join(sys._MEIPASS, "bundled", name))
+            candidates.append(os.path.join(sys._MEIPASS, name))
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        candidates.append(os.path.join(base_dir, "bundled", name))
+        candidates.append(os.path.join(base_dir, name))
+        # 也可以检查可执行文件同级目录
+        if getattr(sys, "frozen", False):
+            exe_dir = os.path.dirname(sys.executable)
+            candidates.append(os.path.join(exe_dir, "bundled", name))
+            candidates.append(os.path.join(exe_dir, name))
+        for p in candidates:
+            if os.path.exists(p):
+                return p
+        return None
+
     def check_installed(self):
         napcat_ok = self._find_napcat_command(os.path.join(self.install_dir, "NapCat")) is not None
-        astrbot_ok = os.path.exists(self._venv_python(os.path.join(self.install_dir, "AstrBot", ".venv")))
+        astrbot_ok = self._find_astrbot_command(self.install_dir) is not None
         return napcat_ok and astrbot_ok
 
     def start_setup(self):
@@ -237,15 +350,27 @@ class ComponentDownloader:
             else:
                 if os.path.isdir(napcat_dir):
                     shutil.rmtree(napcat_dir)
-                zip_path = os.path.join(self.install_dir, "NapCat.zip")
-                self.log(f"开始下载 NapCat {NAPCAT_VERSION}...")
-                success = self.download_file(NAPCAT_URL, zip_path, NAPCAT_SHA256)
-                if not success:
-                    raise RuntimeError("NapCat 下载失败，请检查网络连接后重试")
-                self.extract_zip(zip_path, napcat_dir)
-                os.remove(zip_path)
+                # 检查本地是否有内置 NapCat (方案一：全内置免下载)
+                bundle_napcat_zip = self._find_bundled_file("NapCat.zip")
+                bundle_napcat_dir = self._find_bundled_file("NapCat")
+                if bundle_napcat_zip:
+                    self.log("检测到本地内置 NapCat，正在直接解压部署 (0流量)...", 10)
+                    self.extract_zip(bundle_napcat_zip, napcat_dir)
+                elif bundle_napcat_dir and os.path.isdir(bundle_napcat_dir):
+                    self.log("检测到本地内置 NapCat，正在装配 (0流量)...", 10)
+                    shutil.copytree(bundle_napcat_dir, napcat_dir, dirs_exist_ok=True)
+                else:
+                    zip_path = os.path.join(self.install_dir, "NapCat.zip")
+                    self.log(f"开始下载 NapCat {NAPCAT_VERSION}...")
+                    success = self.download_file(NAPCAT_URL, zip_path, NAPCAT_SHA256)
+                    if not success:
+                        raise RuntimeError("NapCat 下载失败，请检查网络连接后重试")
+                    self.extract_zip(zip_path, napcat_dir)
+                    if os.path.exists(zip_path):
+                        os.remove(zip_path)
+
                 if not self._find_napcat_command(napcat_dir):
-                    raise RuntimeError("NapCat 压缩包中未找到可执行程序")
+                    raise RuntimeError("NapCat 目录中未找到可执行程序")
                 self.log("✅ [NapCat] 部署完成！", 45)
 
             self.install_astrbot()

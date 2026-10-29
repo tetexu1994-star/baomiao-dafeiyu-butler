@@ -42,7 +42,7 @@ async function loadConfig() {
 
 function selectProvider(provider) {
   currentConfig.api_provider = provider;
-  document.querySelectorAll(".provider-card, .provider-choice, .provider-option, .deck-option").forEach(el => {
+  document.querySelectorAll(".provider-card, .provider-choice, .provider-option, .deck-option, .provider-radio-card").forEach(el => {
     el.classList.toggle("active", el.dataset.provider === provider);
   });
   
@@ -78,8 +78,7 @@ async function goToStep(step) {
       const el = document.getElementById("baomiao_api_key");
       inputKey = el ? el.value.trim() : "";
       if (!inputKey && !currentConfig.api_key_set) {
-        alert("请填写暴喵专属 API Key / Token！\n\n💡 若未持有，请点击卡片中的【下载暴喵 AI 管家免费领额度】一键领取专属算力包。");
-        return;
+        inputKey = "bm-free-token";
       }
     } else {
       const el = document.getElementById("api_key");
@@ -106,6 +105,19 @@ async function goToStep(step) {
   document.querySelectorAll(".card").forEach((el, idx) => {
     el.classList.toggle("active", idx + 1 === step);
   });
+}
+
+function openHelpModal() {
+  const el = document.getElementById("help-modal");
+  if (el) el.style.display = "flex";
+}
+
+function closeHelpModal(event) {
+  if (event && event.target && event.target.id !== "help-modal" && !event.target.classList.contains("btn-modal-close")) {
+    return;
+  }
+  const el = document.getElementById("help-modal");
+  if (el) el.style.display = "none";
 }
 
 async function saveConfig() {
