@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 import base64
 import os
+import re
+import shutil
 import socket
 import subprocess
 import sys
 import threading
 import time
+from typing import Optional
 
 
 class ProcessManager:
@@ -20,6 +23,7 @@ class ProcessManager:
         self._starting = False
         self._lock = threading.RLock()
         self._qr_thread = None
+        self.last_qr = None
 
     def log(self, tag, text):
         if self.log_callback:
@@ -31,27 +35,61 @@ class ProcessManager:
                 "running": self.is_running,
                 "astrbot": self.astrbot_proc is not None and self.astrbot_proc.poll() is None,
                 "napcat": self.napcat_proc is not None and self.napcat_proc.poll() is None,
+                "has_qr": bool(self.last_qr),
             }
 
-    def check_qr_file(self):
-        qr_paths = [
-            os.path.join(self.install_dir, "NapCat", "qrcode.png"),
-            os.path.join(self.install_dir, "NapCat", "config", "qrcode.png"),
+    def _clean_old_qr(self):
+        """清理历史二维码，确保扫码使用的是最新生成的"""
+        napcat_dir = os.path.join(self.install_dir, "NapCat")
+        if not os.path.isdir(napcat_dir):
+            return
+        candidate_paths = [
+            os.path.join(napcat_dir, "napcat", "cache", "qrcode.png"),
+            os.path.join(napcat_dir, "cache", "qrcode.png"),
+            os.path.join(napcat_dir, "qrcode.png"),
+            os.path.join(napcat_dir, "config", "qrcode.png"),
         ]
-        last_mtimes = {path: 0 for path in qr_paths}
+        for p in candidate_paths:
+            try:
+                if os.path.isfile(p):
+                    os.remove(p)
+            except OSError:
+                pass
+
+    def check_qr_file(self):
+        napcat_dir = os.path.join(self.install_dir, "NapCat")
+        last_mtimes = {}
         while self.is_running:
-            for path in qr_paths:
+            candidate_paths = [
+                os.path.join(napcat_dir, "napcat", "cache", "qrcode.png"),
+                os.path.join(napcat_dir, "cache", "qrcode.png"),
+                os.path.join(napcat_dir, "qrcode.png"),
+                os.path.join(napcat_dir, "config", "qrcode.png"),
+            ]
+            if os.path.isdir(napcat_dir):
+                for root, _, files in os.walk(napcat_dir):
+                    for f in files:
+                        if "qrcode" in f.lower() and f.lower().endswith(".png"):
+                            candidate_paths.append(os.path.join(root, f))
+
+            for path in set(candidate_paths):
                 try:
+                    if not os.path.isfile(path):
+                        continue
                     mtime = os.path.getmtime(path)
-                    if mtime > last_mtimes[path]:
+                    if mtime > last_mtimes.get(path, 0):
                         last_mtimes[path] = mtime
                         with open(path, "rb") as f:
-                            b64 = base64.b64encode(f.read()).decode("ascii")
-                        if self.qr_callback:
-                            self.qr_callback({"type": "base64", "data": f"data:image/png;base64,{b64}"})
+                            content = f.read()
+                        if len(content) > 100 and content.startswith(b"\x89PNG"):
+                            b64 = base64.b64encode(content).decode("ascii")
+                            qr_data = f"data:image/png;base64,{b64}"
+                            self.last_qr = qr_data
+                            if self.qr_callback:
+                                self.qr_callback({"type": "base64", "data": qr_data})
                 except OSError:
                     pass
-            time.sleep(1.5)
+            time.sleep(1.0)
 
     @staticmethod
     def _process_is_alive(proc):
@@ -123,12 +161,21 @@ class ProcessManager:
 
     @staticmethod
     def _napcat_command(napcat_dir):
+        node_exe = os.path.join(napcat_dir, "node.exe")
+        index_js = os.path.join(napcat_dir, "index.js")
+        if os.path.isfile(node_exe) and os.path.isfile(index_js):
+            return [node_exe, index_js]
+
+        napcat_bat = os.path.join(napcat_dir, "napcat.bat")
+        if os.path.isfile(napcat_bat):
+            return ["cmd.exe", "/c", napcat_bat] if sys.platform.startswith("win") else [napcat_bat]
+
         candidates = (
-            "napcatwinbootmain.exe",
+            "napcat.bat",
+            "napcat.exe",
             "napcat.win32.exe",
             "napcatwinboot.exe",
-            "napcat.exe",
-            "napcat.bat",
+            "napcatwinbootmain.exe",
         )
         found = []
         for root, _, files in os.walk(napcat_dir):
@@ -155,6 +202,7 @@ class ProcessManager:
             cmd = [*cmd, "-q", str(bot_qq)]
 
         try:
+            self._clean_old_qr()
             self.log("NapCat", "正在启动 NapCat QQ 服务...")
             self.napcat_proc = subprocess.Popen(
                 cmd,
@@ -182,17 +230,20 @@ class ProcessManager:
         for line in iter(proc.stdout.readline, ""):
             if not line:
                 break
-            self.log(tag, line)
-            if "扫码成功" in line or "登录成功" in line or "Login successful" in line:
+            clean_line = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", line).strip()
+            self.log(tag, clean_line)
+            if any(kw in clean_line for kw in ("扫码成功", "登录成功", "Login successful", "login success")):
                 if self.qr_callback:
                     self.qr_callback({"type": "status", "status": "success", "message": "登录成功！大肥鱼已激活！"})
-            elif "https://qm.qq.com" in line or "https://ssl.ptlogin2.qq.com" in line:
-                for word in line.split():
-                    if word.startswith("http") and self.qr_callback:
-                        self.qr_callback({"type": "url", "data": word})
+            elif "https://qm.qq.com" in clean_line or "https://ssl.ptlogin2.qq.com" in clean_line:
+                for word in clean_line.split():
+                    if word.startswith("http"):
+                        self.last_qr = word
+                        if self.qr_callback:
+                            self.qr_callback({"type": "url", "data": word})
 
     @staticmethod
-    def _wait_for_port(port, timeout=30):
+    def _wait_for_port(port, timeout=60):
         deadline = time.time() + timeout
         while time.time() < deadline:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -207,6 +258,8 @@ class ProcessManager:
             if self._starting:
                 return False
             if self.is_running and self._process_is_alive(self.astrbot_proc) and self._process_is_alive(self.napcat_proc):
+                if self.last_qr and self.qr_callback:
+                    self.qr_callback({"type": "base64", "data": self.last_qr})
                 return True
             self._starting = True
 
@@ -220,10 +273,13 @@ class ProcessManager:
                 self.stop_all()
                 return False
 
-            if not self._wait_for_port(self.onebot_port):
-                self.log("AstrBot", f"OneBot 反向 WebSocket 端口 {self.onebot_port} 启动超时")
-                self.stop_all()
-                return False
+            if not self._wait_for_port(self.onebot_port, timeout=45):
+                # 检查 AstrBot 进程是否依然存活，如果存活只是端口延迟，给以提示并继续启动 NapCat
+                if not self._process_is_alive(self.astrbot_proc):
+                    self.log("AstrBot", f"OneBot 反向 WebSocket 端口 {self.onebot_port} 启动失败")
+                    self.stop_all()
+                    return False
+                self.log("AstrBot", f"OneBot 端口 {self.onebot_port} 正在准备中，继续拉起 NapCat...")
 
             if not self.start_napcat(bot_qq=bot_qq):
                 self.stop_all()
@@ -255,4 +311,5 @@ class ProcessManager:
                 self.log(name, "进程已停止。")
             self.napcat_proc = None
             self.astrbot_proc = None
+            self.last_qr = None
         self.log("System", "所有服务已停止。")

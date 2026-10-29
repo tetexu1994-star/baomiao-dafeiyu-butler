@@ -232,11 +232,50 @@ async function startInstallation() {
   }
 }
 
+let qrPollingTimer = null;
+
+function renderQrCode(qrData) {
+  const qrImg = document.getElementById("qr-image");
+  const placeholder = document.getElementById("qr-placeholder");
+  if (!qrImg || !placeholder) return;
+  if (qrData.startsWith("http")) {
+    qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" + encodeURIComponent(qrData);
+  } else {
+    qrImg.src = qrData;
+  }
+  qrImg.style.display = "block";
+  placeholder.style.display = "none";
+}
+
+function startQrPolling() {
+  stopQrPolling();
+  qrPollingTimer = setInterval(async () => {
+    try {
+      const res = await fetch("/api/qrcode");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.data) {
+          renderQrCode(data.data);
+          stopQrPolling();
+        }
+      }
+    } catch (_) {}
+  }, 1500);
+}
+
+function stopQrPolling() {
+  if (qrPollingTimer) {
+    clearInterval(qrPollingTimer);
+    qrPollingTimer = null;
+  }
+}
+
 async function startServices() {
   document.getElementById("service-status").textContent = "正在启动服务…";
   document.getElementById("qr-placeholder").style.display = "flex";
   document.getElementById("qr-image").style.display = "none";
   document.getElementById("success-banner").style.display = "none";
+  startQrPolling();
 
   try {
     const res = await fetch("/api/start", {
@@ -262,6 +301,7 @@ async function restartServices() {
 }
 
 async function stopServices() {
+  stopQrPolling();
   try {
     await fetch("/api/stop", {
       method: "POST",
@@ -288,13 +328,11 @@ function initEventStream() {
       } else if (payload.type === "progress") {
         updateInstallStatus(payload);
       } else if (payload.type === "qr") {
-        const qrImg = document.getElementById("qr-image");
-        const placeholder = document.getElementById("qr-placeholder");
-        qrImg.src = payload.data;
-        qrImg.style.display = "block";
-        placeholder.style.display = "none";
+        renderQrCode(payload.data);
+        stopQrPolling();
         appendLog("[NapCat] 已捕获登录二维码，请使用手机 QQ 扫码。");
       } else if (payload.type === "login_success") {
+        stopQrPolling();
         document.getElementById("success-banner").style.display = "block";
         document.getElementById("service-status").textContent = "大肥鱼已激活·在线中";
         appendLog("🎉 [系统] 登录成功！大肥鱼已正式就绪！");

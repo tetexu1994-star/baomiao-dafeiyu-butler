@@ -202,17 +202,20 @@ def build_napcat_config(existing, user_config):
 
 def generate_napcat_config(install_dir, user_config):
     napcat_dir = os.path.join(install_dir, "NapCat")
-    config_dir = os.path.join(napcat_dir, "config")
-    os.makedirs(config_dir, exist_ok=True)
-
+    config_dirs = [
+        os.path.join(napcat_dir, "config"),
+        os.path.join(napcat_dir, "napcat", "config"),
+    ]
     bot_qq = str(user_config.get("bot_qq", "")).strip()
     config_filenames = ["onebot11.json"]
     if bot_qq:
         config_filenames.append(f"onebot11_{bot_qq}.json")
 
-    for filename in config_filenames:
-        target_path = os.path.join(config_dir, filename)
-        existing = _read_json(target_path, {})
-        _write_json(target_path, build_napcat_config(existing, user_config))
+    for cdir in config_dirs:
+        os.makedirs(cdir, exist_ok=True)
+        for filename in config_filenames:
+            target_path = os.path.join(cdir, filename)
+            existing = _read_json(target_path, {})
+            _write_json(target_path, build_napcat_config(existing, user_config))
 
-    return os.path.join(config_dir, config_filenames[0])
+    return os.path.join(config_dirs[0], config_filenames[0])

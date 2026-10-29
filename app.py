@@ -225,6 +225,9 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
                 self._send_json(public_user_config(user_config))
         elif parsed.path == "/api/install/status":
             self._send_json({"success": True, **get_install_state()})
+        elif parsed.path == "/api/qrcode":
+            qr_data = process_mgr.last_qr if process_mgr else None
+            self._send_json({"success": bool(qr_data), "data": qr_data or ""})
         elif parsed.path == "/api/events":
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream; charset=utf-8")

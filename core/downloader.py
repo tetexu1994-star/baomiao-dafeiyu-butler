@@ -114,12 +114,21 @@ class ComponentDownloader:
 
     @staticmethod
     def _find_napcat_command(napcat_dir):
+        if not os.path.isdir(napcat_dir):
+            return None
+        node_exe = os.path.join(napcat_dir, "node.exe")
+        index_js = os.path.join(napcat_dir, "index.js")
+        if os.path.isfile(node_exe) and os.path.isfile(index_js):
+            return [node_exe, index_js]
+        napcat_bat = os.path.join(napcat_dir, "napcat.bat")
+        if os.path.isfile(napcat_bat):
+            return ["cmd.exe", "/c", napcat_bat] if sys.platform.startswith("win") else [napcat_bat]
         candidates = {
-            "NapCatWinBootMain.exe",
-            "napcat.win32.exe",
-            "NapCatWinBoot.exe",
-            "NapCat.exe",
             "napcat.bat",
+            "napcat.exe",
+            "napcat.win32.exe",
+            "napcatwinboot.exe",
+            "napcatwinbootmain.exe",
         }
         for root, _, files in os.walk(napcat_dir):
             for name in files:
