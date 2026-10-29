@@ -40,7 +40,7 @@ class DesktopPetAPI:
         return {
             "mode": self.mode,
             "affinity": self.affinity,
-            "has_api_key": bool(self.config.get("api_key", "").strip()),
+            "has_api_key": bool(self.config.get("api_key", "").strip()) and self.config.get("api_key", "").strip() != "bm-free-token",
             "master_qq": self.config.get("master_qq", ""),
         }
 
@@ -87,9 +87,9 @@ class DesktopPetAPI:
         api_base = self.config.get("api_base", "https://api.deepseek.com/v1").rstrip("/")
         model_name = self.config.get("model_name", "deepseek-chat")
 
-        if not api_key:
+        if not api_key or api_key == "bm-free-token":
             return {
-                "reply": "主人还没有配置 DeepSeek API Key 呢喵～请右键点击本鱼选择【打开领养舱】填一下 Key 就能畅聊啦！"
+                "reply": "主人还没有配置可用的 API Key 呢喵～请右键点击本鱼选择【打开领养舱】填一下 Key 就能畅聊啦！"
             }
 
         # 调用 DeepSeek API

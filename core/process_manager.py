@@ -38,9 +38,14 @@ class ProcessManager:
         self._qr_thread = None
         self.last_qr = None
         self.is_logged_in = False
+        self._onebot_cache = (0.0, False)
 
     def is_onebot_connected(self):
         """检查 NapCat 与 AstrBot 之间的 OneBot 11 反向 WebSocket 是否处于已连接状态（纯静默模式）"""
+        now = time.time()
+        if now - self._onebot_cache[0] < 3.0:
+            return self._onebot_cache[1]
+        result = False
         try:
             out = subprocess.check_output(
                 ["netstat", "-ano"],
@@ -52,12 +57,13 @@ class ProcessManager:
             target_port = f":{self.onebot_port}"
             for line in out.splitlines():
                 if target_port in line and "ESTABLISHED" in line:
-                    self.is_logged_in = True
-                    return True
+                    result = True
+                    break
         except Exception:
             pass
-        self.is_logged_in = False
-        return False
+        self.is_logged_in = result
+        self._onebot_cache = (now, result)
+        return result
 
     def log(self, tag, text):
         if self.log_callback:
@@ -167,6 +173,39 @@ class ProcessManager:
     @staticmethod
     def _process_is_alive(proc):
         return proc is not None and proc.poll() is None
+
+    @staticmethod
+    def _kill_tree(proc):
+        """终止进程及其子进程树，避免 cmd/bat 包装启动时残留孤儿进程"""
+        if proc is None or not ProcessManager._process_is_alive(proc):
+            return
+        pid = proc.pid
+        if sys.platform.startswith("win"):
+            # 先按进程树整棵终止（覆盖 cmd/bat 包装出的子进程），再走常规 terminate 兜底
+            try:
+                subprocess.run(
+                    ["taskkill", "/PID", str(pid), "/T", "/F"],
+                    capture_output=True,
+                    timeout=15,
+                    check=False,
+                    **_silent_kwargs(),
+                )
+            except Exception:
+                pass
+        try:
+            proc.terminate()
+            proc.wait(timeout=5)
+        except Exception:
+            pass
+        if ProcessManager._process_is_alive(proc):
+            try:
+                proc.kill()
+            except Exception:
+                pass
+        try:
+            proc.wait(timeout=5)
+        except Exception:
+            pass
 
     def _astrbot_command(self):
         astrbot_dir = os.path.join(self.install_dir, "AstrBot")
@@ -395,15 +434,7 @@ class ProcessManager:
             for name, proc in (("NapCat", self.napcat_proc), ("AstrBot", self.astrbot_proc)):
                 if not self._process_is_alive(proc):
                     continue
-                try:
-                    proc.terminate()
-                    proc.wait(timeout=5)
-                except Exception:
-                    try:
-                        proc.kill()
-                        proc.wait(timeout=2)
-                    except Exception:
-                        pass
+                self._kill_tree(proc)
                 if proc.stdout:
                     try:
                         proc.stdout.close()

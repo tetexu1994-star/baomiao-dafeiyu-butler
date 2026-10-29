@@ -229,6 +229,10 @@
                 <span class="guide-text">💡 API Key 可以在暴喵 AI 管家获取（送免费额度开启养成）：</span>
                 <button type="button" class="btn-link-download" onclick="openExternalUrl('https://ai.baomiao.cn/')">下载暴喵 AI 管家 &gt;</button>
               </div>
+
+              <p class="block-hint">暴喵请求地址已自动配置；只有接口要求鉴权时才需要填写密钥。
+                <button type="button" class="btn-clear-key-link" id="btn-clear-key" onclick="clearApiKey()">清除已保存的 Key</button>
+              </p>
             </div>
 
             <!-- 白名单安全模式 -->
@@ -519,6 +523,22 @@
     </div>
 
   </div>
+
+  <!-- 通用确认/输入弹窗 -->
+  <div class="dialog-overlay" id="dialog-overlay" style="display: none;">
+    <div class="dialog-card">
+      <div class="dialog-title" id="dialog-title">提示</div>
+      <div class="dialog-body" id="dialog-body"></div>
+      <input type="text" class="dialog-input" id="dialog-input" style="display: none;" autocomplete="off">
+      <div class="dialog-actions">
+        <button class="btn btn-outline btn-sm" id="dialog-cancel">取消</button>
+        <button class="btn btn-brand btn-sm" id="dialog-ok">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 轻提示 toast -->
+  <div class="toast-container" id="toast-container"></div>
 
   <script src="js/vendor/qrcode.js"></script>
   <script src="js/app.js?v=3.3"></script>

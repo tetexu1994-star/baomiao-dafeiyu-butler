@@ -276,6 +276,54 @@
       background: rgba(56, 189, 248, 0.3);
       color: #fff;
     }
+
+    /* 极简确认弹窗（替代 WebView2 不支持的 confirm） */
+    .pet-confirm-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 14, 28, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      -webkit-app-region: no-drag;
+    }
+    .pet-confirm-card {
+      width: 86%;
+      background: rgba(23, 31, 58, 0.96);
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .pet-confirm-text {
+      color: #f1f5f9;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .pet-confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .pet-confirm-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #cbd5e1;
+      border-radius: 8px;
+      padding: 5px 14px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .pet-confirm-btn.primary {
+      background: #0284c7;
+      border-color: #0284c7;
+      color: #fff;
+    }
+    .pet-confirm-btn:hover { opacity: 0.85; }
   </style>
 </head>
 <body>
@@ -320,6 +368,17 @@
         <span class="chip" onclick="quickSay('投喂金枪鱼罐头')">投喂罐头</span>
         <span class="chip" onclick="quickSay('帮我写请假条')">帮写请假条</span>
         <span class="chip" onclick="quickSay('解除认主')">解除认主</span>
+      </div>
+    </div>
+
+    <!-- 极简确认弹窗 -->
+    <div class="pet-confirm-overlay" id="pet-confirm" style="display: none;">
+      <div class="pet-confirm-card">
+        <div class="pet-confirm-text" id="pet-confirm-text"></div>
+        <div class="pet-confirm-actions">
+          <button class="pet-confirm-btn" onclick="petConfirmResolve(false)">取消</button>
+          <button class="pet-confirm-btn primary" onclick="petConfirmResolve(true)">确定</button>
+        </div>
       </div>
     </div>
 
@@ -494,9 +553,29 @@
       }
     }
 
-    function closePet(e) {
+    let petConfirmResolveFn = null;
+    function petConfirm(text) {
+      return new Promise(resolve => {
+        const overlay = document.getElementById("pet-confirm");
+        const textEl = document.getElementById("pet-confirm-text");
+        if (overlay && textEl) {
+          textEl.textContent = text;
+          overlay.style.display = "flex";
+          petConfirmResolveFn = resolve;
+        } else {
+          resolve(false);
+        }
+      });
+    }
+    function petConfirmResolve(val) {
+      const overlay = document.getElementById("pet-confirm");
+      if (overlay) overlay.style.display = "none";
+      if (petConfirmResolveFn) { petConfirmResolveFn(val); petConfirmResolveFn = null; }
+    }
+
+    async function closePet(e) {
       if (e) e.stopPropagation();
-      if (confirm("确定要让大肥鱼回小窝休息嘛？")) {
+      if (await petConfirm("确定要让大肥鱼回小窝休息嘛？")) {
         if (window.pywebview && window.pywebview.api) {
           window.pywebview.api.close_pet();
         } else {

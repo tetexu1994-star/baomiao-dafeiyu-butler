@@ -10,6 +10,7 @@ import queue
 import sys
 import threading
 import time
+import urllib.request
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -469,12 +470,28 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
         self._send_json({"success": False, "message": "不支持跨域请求"}, 405)
 
 
+def _existing_instance_at(port):
+    """探测指定端口是否已运行本程序的实例"""
+    try:
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/install/status",
+            headers={"User-Agent": "BaomiaoButler/1.3"},
+        )
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("success") is True
+    except Exception:
+        return False
+
+
 def start_server(port=18999):
     try:
         server = ThreadingHTTPServer(("127.0.0.1", port), ButlerHTTPHandler)
     except OSError:
         if port == 0:
             raise
+        if _existing_instance_at(port):
+            return None
         server = ThreadingHTTPServer(("127.0.0.1", 0), ButlerHTTPHandler)
     server.daemon_threads = True
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -483,6 +500,10 @@ def start_server(port=18999):
 
 def main():
     server = start_server(18999)
+    if server is None:
+        print("[系统] 检测到大肥鱼管家已在运行，正在打开现有窗口...")
+        webbrowser.open("http://127.0.0.1:18999")
+        return
     port = server.server_port
     url = f"http://127.0.0.1:{port}"
     print(f"[一键安装] 本地控制台已启动: {url}")

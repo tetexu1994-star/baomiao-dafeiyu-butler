@@ -23,6 +23,67 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function showToast(message) {
+  const container = document.getElementById("toast-container");
+  if (!container) {
+    console.warn(message);
+    return;
+  }
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add("toast-hide");
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function showDialog({ title, body, input = false, defaultValue = "" }) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("dialog-overlay");
+    if (!overlay) {
+      resolve(input ? null : false);
+      return;
+    }
+    const titleEl = document.getElementById("dialog-title");
+    const bodyEl = document.getElementById("dialog-body");
+    const inputEl = document.getElementById("dialog-input");
+    const okBtn = document.getElementById("dialog-ok");
+    const cancelBtn = document.getElementById("dialog-cancel");
+    titleEl.textContent = title;
+    bodyEl.textContent = body;
+    inputEl.style.display = input ? "block" : "none";
+    inputEl.value = defaultValue;
+    overlay.style.display = "flex";
+    const cleanup = () => {
+      overlay.style.display = "none";
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+    };
+    okBtn.onclick = () => {
+      const result = input ? inputEl.value : true;
+      cleanup();
+      resolve(result);
+    };
+    cancelBtn.onclick = () => {
+      cleanup();
+      resolve(input ? null : false);
+    };
+    if (input) {
+      setTimeout(() => inputEl.focus(), 50);
+    }
+  });
+}
+
+function showConfirm(message) {
+  return showDialog({ title: "确认", body: message, input: false });
+}
+
+function showPrompt(message, defaultValue = "") {
+  return showDialog({ title: "提示", body: message, input: true, defaultValue });
+}
+
 async function fetchJSON(url, options = {}, timeoutMs = 30000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -103,11 +164,11 @@ async function goToStep(step) {
     const master = document.getElementById("master_qq").value.trim();
     const bot = document.getElementById("bot_qq").value.trim();
     if (!/^\d{1,12}$/.test(master)) {
-      alert("请填写正确的【主人大号 QQ】。");
+      showToast("请填写正确的【主人大号 QQ】。");
       return;
     }
     if (!/^\d{1,12}$/.test(bot)) {
-      alert("请填写正确的【机器人小号 QQ】。");
+      showToast("请填写正确的【机器人小号 QQ】。");
       return;
     }
 
@@ -122,7 +183,7 @@ async function goToStep(step) {
       const el = document.getElementById("api_key");
       inputKey = el ? el.value.trim() : "";
       if (!inputKey && !currentConfig.api_key_set) {
-        alert("请填写 DeepSeek 官方 API Key。");
+        showToast("请填写 DeepSeek 官方 API Key。");
         return;
       }
     }
@@ -178,14 +239,14 @@ async function saveConfig() {
     });
     const data = await res.json();
     if (!res.ok || !data.success) {
-      alert("保存配置失败: " + (data.message || "参数错误"));
+      showToast("保存配置失败: " + (data.message || "参数错误"));
       return false;
     }
     currentConfig = { ...currentConfig, ...data.config, api_key: "" };
     return true;
   } catch (err) {
     console.error("保存配置失败:", err);
-    alert("保存配置失败，请确认管家服务仍在运行。");
+    showToast("保存配置失败，请确认管家服务仍在运行。");
     return false;
   }
 }
@@ -230,9 +291,9 @@ function clearTerminal() {
 
 function copyText(text) {
   navigator.clipboard.writeText(text).then(() => {
-    alert("已复制口令: " + text + "\n可以直接发送给 QQ 大肥鱼体验！");
+    showToast("已复制口令: " + text + "，可直接发送给 QQ 大肥鱼体验！");
   }).catch(() => {
-    prompt("请手动复制口令:", text);
+    showToast("自动复制失败，请手动复制: " + text);
   });
 }
 
@@ -392,15 +453,15 @@ function stopQrPolling() {
 
 async function relogin() {
   const currentBot = currentConfig.bot_qq || "";
-  const input = prompt(
-    "【重新扫码换号】\n\n- 如需换其他小号 QQ 登录，请在下方输入新的小号 QQ；\n- 如继续使用当前小号 (" + currentBot + ") 重新扫码，请直接点击【确定】：",
+  const input = await showPrompt(
+    "如需换其他小号 QQ 登录，请在下方输入新的小号 QQ；如继续使用当前小号 (" + currentBot + ")，请直接点击【确定】。",
     currentBot
   );
   if (input === null) return;
 
   const targetBot = input.trim() || currentBot;
   if (!/^\d{1,12}$/.test(targetBot)) {
-    alert("请输入合法的 QQ 号码！");
+    showToast("请输入合法的 QQ 号码！");
     return;
   }
 
@@ -430,7 +491,7 @@ async function relogin() {
     }
     appendLog(`🔑 [换号] 已重置登录凭证，准备使用小号 (${targetBot}) 重新扫码...`);
   } catch (err) {
-    alert("重新登录失败: " + err.message);
+    showToast("重新登录失败: " + err.message);
   }
 }
 
@@ -531,7 +592,7 @@ function appendLog(line) {
 }
 
 async function unbindMaster() {
-  if (!confirm("确定要解除当前主人绑定吗？\n\n解除后：\n1. 大肥鱼将清除主人专属绑定，恢复自由无主状态；\n2. 任何人都可以随时重新认领大肥鱼；\n3. 你也可以稍后随时在第1步重新认领。")) {
+  if (!(await showConfirm("确定要解除当前主人绑定吗？\n\n解除后：\n1. 大肥鱼将清除主人专属绑定，恢复自由无主状态；\n2. 任何人都可以随时重新认领大肥鱼；\n3. 你也可以稍后随时在第1步重新认领。"))) {
     return;
   }
   try {
@@ -541,7 +602,7 @@ async function unbindMaster() {
       body: "{}"
     });
     const data = await res.json();
-    alert(data.message || "已成功解除主人绑定！");
+    showToast(data.message || "已成功解除主人绑定！");
     currentConfig.master_qq = "";
     const masterInput = document.getElementById("master_qq");
     if (masterInput) masterInput.value = "";
@@ -549,7 +610,7 @@ async function unbindMaster() {
     if (dispMaster) dispMaster.textContent = "无（自由模式）";
     appendLog("👑 [契约] 已成功解除主人绑定，大肥鱼恢复自由无主身。");
   } catch (err) {
-    alert("解除绑定失败: " + err.message);
+    showToast("解除绑定失败: " + err.message);
   }
 }
 
@@ -564,10 +625,41 @@ async function launchDesktopPet() {
     if (data.success) {
       appendLog("🐾 [桌面萌宠] " + (data.message || "大肥鱼桌面伴侣已成功唤起！可在桌面任意拖拽或对话。"));
     } else {
-      alert("桌面萌宠提示: " + data.message);
+      showToast("桌面萌宠提示: " + data.message);
     }
   } catch (err) {
-    alert("唤起桌面萌宠失败: " + err.message);
+    showToast("唤起桌面萌宠失败: " + err.message);
+  }
+}
+
+async function clearApiKey() {
+  if (!currentConfig.api_key_set) {
+    showToast("当前没有已保存的 Key");
+    return;
+  }
+  if (!(await showConfirm("确定要清除已保存的 API Key 吗？清除后需要重新填写才能使用 AI。"))) {
+    return;
+  }
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: "" })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      showToast("清除失败: " + (data.message || "参数错误"));
+      return;
+    }
+    currentConfig.api_key = "";
+    currentConfig.api_key_set = false;
+    const deepseekKeyEl = document.getElementById("api_key");
+    if (deepseekKeyEl) deepseekKeyEl.value = "";
+    const baomiaoKeyEl = document.getElementById("baomiao_api_key");
+    if (baomiaoKeyEl) baomiaoKeyEl.value = "";
+    showToast("已清除保存的 API Key");
+  } catch (err) {
+    showToast("清除失败，请确认管家服务仍在运行");
   }
 }
 
