@@ -405,7 +405,12 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
             self._send_json({"success": launched, "message": launch_msg})
 
         elif parsed.path == "/api/relogin":
+            body = self._read_json_body() or {}
+            new_bot_qq = str(body.get("bot_qq", "")).strip()
             with config_lock:
+                if new_bot_qq and new_bot_qq != user_config.get("bot_qq"):
+                    user_config["bot_qq"] = new_bot_qq
+                    save_user_config(user_config)
                 config_snapshot = dict(user_config)
             error = validate_config(config_snapshot, require_complete=True)
             if error:
@@ -427,7 +432,7 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
                     )
                     process_mgr.clean_session()
                 ok = process_mgr.start_all(bot_qq=config_snapshot.get("bot_qq", ""))
-                self._send_json({"success": ok, "message": "" if ok else "重新启动失败"})
+                self._send_json({"success": ok, "message": "" if ok else "重新启动失败", "bot_qq": config_snapshot.get("bot_qq", "")})
             except Exception as exc:
                 self._send_json({"success": False, "message": str(exc)}, 400)
 

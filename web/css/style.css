@@ -894,33 +894,36 @@ body {
 }
 
 .qr-scanner-box {
-  width: 176px;
-  height: 176px;
+  width: 200px;
+  min-height: 200px;
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: 12px 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  box-sizing: border-box;
 }
 
 .qr-scanner-box img {
-  width: 100%;
-  height: 100%;
+  width: 176px;
+  height: 176px;
   object-fit: contain;
 }
 
 .qr-placeholder {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   color: #64748b;
-  gap: 12px;
+  gap: 10px;
   font-size: 12px;
 }
 

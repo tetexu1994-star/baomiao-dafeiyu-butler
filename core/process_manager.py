@@ -56,6 +56,7 @@ class ProcessManager:
                     return True
         except Exception:
             pass
+        self.is_logged_in = False
         return False
 
     def log(self, tag, text):
@@ -64,12 +65,13 @@ class ProcessManager:
 
     def status(self):
         with self._lock:
+            connected = self.is_onebot_connected()
             return {
                 "running": self.is_running,
                 "astrbot": self.astrbot_proc is not None and self.astrbot_proc.poll() is None,
                 "napcat": self.napcat_proc is not None and self.napcat_proc.poll() is None,
                 "has_qr": bool(self.last_qr),
-                "is_logged_in": self.is_logged_in or self.is_onebot_connected(),
+                "is_logged_in": connected,
             }
 
     def _clean_old_qr(self):
@@ -103,6 +105,18 @@ class ProcessManager:
                     shutil.rmtree(cdir, ignore_errors=True)
                 except Exception:
                     pass
+        # 清除 protocol 缓存凭证，防止旧 Session 锁定
+        for cfg_dir in (
+            os.path.join(napcat_dir, "napcat", "config"),
+            os.path.join(napcat_dir, "config"),
+        ):
+            if os.path.isdir(cfg_dir):
+                for f in os.listdir(cfg_dir):
+                    if "protocol" in f.lower() or "cache" in f.lower():
+                        try:
+                            os.remove(os.path.join(cfg_dir, f))
+                        except Exception:
+                            pass
         self.is_logged_in = False
         self.last_qr = None
 

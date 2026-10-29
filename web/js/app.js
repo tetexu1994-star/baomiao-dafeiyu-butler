@@ -38,6 +38,12 @@ async function loadConfig() {
     if (currentConfig.install_dir) {
       document.getElementById("display-install-dir").textContent = currentConfig.install_dir;
     }
+
+    // 二次启动智能化：如果已有完整配置，自动跳至第 03 步唤醒大肥鱼并启动服务，免去重复点击流程
+    if (currentConfig.master_qq && currentConfig.bot_qq && currentConfig.install_dir) {
+      appendLog(`💡 [欢迎回来] 检测到主人 QQ (${currentConfig.master_qq}) 已就绪，自动直达【03 唤醒大肥鱼】...`);
+      goToStep(3);
+    }
   } catch (err) {
     console.error("加载配置失败:", err);
   }
@@ -111,6 +117,7 @@ async function goToStep(step) {
   });
   if (step === 3) {
     checkServiceStatus();
+    startServices();
   }
 }
 
@@ -245,23 +252,29 @@ function setLoginSuccessUI() {
   stopQrPolling();
   const placeholder = document.getElementById("qr-placeholder");
   const qrImg = document.getElementById("qr-image");
+  const qrBox = document.getElementById("qr-box");
   const banner = document.getElementById("success-banner");
   const status = document.getElementById("service-status");
   const radarTag = document.querySelector(".qr-radar-tag");
+
+  if (qrBox) {
+    qrBox.style.padding = "10px 8px";
+  }
 
   if (placeholder) {
     placeholder.style.display = "flex";
     placeholder.style.flexDirection = "column";
     placeholder.style.alignItems = "center";
     placeholder.style.justifyContent = "center";
-    placeholder.style.padding = "10px";
+    placeholder.style.padding = "0";
+    placeholder.style.width = "100%";
     placeholder.innerHTML = `
-      <div class="active-mascot-wrapper" style="position: relative; width: 140px; height: 160px; margin: 0 auto 10px auto;">
-        <img src="img/dafeiyu_chibi.png" alt="暴喵大肥鱼" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(56, 189, 248, 0.45));">
-        <span style="position: absolute; bottom: 8px; right: 16px; width: 14px; height: 14px; background: #10b981; border: 2.5px solid #0f172a; border-radius: 50%; box-shadow: 0 0 10px #10b981;"></span>
+      <div class="active-mascot-wrapper" style="position: relative; width: 92px; height: 112px; margin: 2px auto 8px auto; animation: petFloat 4s ease-in-out infinite;">
+        <img src="img/dafeiyu_chibi.png" alt="暴喵大肥鱼" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(56, 189, 248, 0.35));">
+        <span style="position: absolute; bottom: 2px; right: 8px; width: 12px; height: 12px; background: #10b981; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 0 6px #10b981;"></span>
       </div>
-      <p style="color: #38bdf8; font-weight: bold; font-size: 16px; margin: 0 0 4px 0; text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);">大肥鱼已激活 · 在线中</p>
-      <p style="color: #94a3b8; font-size: 12.5px; margin: 0; line-height: 1.4;">免扫码自动上线 · 随时在 QQ 发消息对话</p>
+      <p style="color: #0284c7; font-weight: 700; font-size: 15px; margin: 0 0 3px 0; white-space: nowrap; text-align: center; letter-spacing: 0.5px;">大肥鱼已激活 · 在线中</p>
+      <p style="color: #64748b; font-size: 11.5px; margin: 0; white-space: nowrap; text-align: center;">随时在 QQ 发消息对话</p>
     `;
   }
   if (qrImg) qrImg.style.display = "none";
@@ -275,6 +288,8 @@ function setLoginSuccessUI() {
 function renderQrCode(qrData) {
   const qrImg = document.getElementById("qr-image");
   const placeholder = document.getElementById("qr-placeholder");
+  const banner = document.getElementById("success-banner");
+  const radarTag = document.querySelector(".qr-radar-tag");
   if (!qrImg || !placeholder) return;
   if (qrData.startsWith("http")) {
     qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" + encodeURIComponent(qrData);
@@ -283,6 +298,10 @@ function renderQrCode(qrData) {
   }
   qrImg.style.display = "block";
   placeholder.style.display = "none";
+  if (banner) banner.style.display = "none";
+  if (radarTag) {
+    radarTag.innerHTML = '<span class="radar-ping"></span><span>等待手机 QQ 扫码确认</span>';
+  }
 }
 
 let isStartingServices = false;
@@ -324,7 +343,19 @@ function stopQrPolling() {
 }
 
 async function relogin() {
-  if (!confirm("确定要退出当前 QQ 账号并重新扫码吗？")) return;
+  const currentBot = currentConfig.bot_qq || "";
+  const input = prompt(
+    "【重新扫码换号】\n\n- 如需换其他小号 QQ 登录，请在下方输入新的小号 QQ；\n- 如继续使用当前小号 (" + currentBot + ") 重新扫码，请直接点击【确定】：",
+    currentBot
+  );
+  if (input === null) return;
+
+  const targetBot = input.trim() || currentBot;
+  if (!/^\d{1,12}$/.test(targetBot)) {
+    alert("请输入合法的 QQ 号码！");
+    return;
+  }
+
   document.getElementById("service-status").textContent = "正在清理凭证…";
   document.getElementById("success-banner").style.display = "none";
   document.getElementById("qr-image").style.display = "none";
@@ -338,10 +369,22 @@ async function relogin() {
     const res = await fetch("/api/relogin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: "{}"
+      body: JSON.stringify({ bot_qq: targetBot })
     });
     const data = await res.json();
     if (!res.ok || !data.success) {
+      throw new Error(data.message || "重新启动失败");
+    }
+    if (data.bot_qq) {
+      currentConfig.bot_qq = data.bot_qq;
+      const botInput = document.getElementById("bot_qq");
+      if (botInput) botInput.value = data.bot_qq;
+    }
+    appendLog(`🔑 [换号] 已重置登录凭证，准备使用小号 (${targetBot}) 重新扫码...`);
+  } catch (err) {
+    alert("重新登录失败: " + err.message);
+  }
+}
       throw new Error(data.message || "重新启动失败");
     }
   } catch (err) {
