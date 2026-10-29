@@ -439,3 +439,26 @@ function appendLog(line) {
   }
   terminal.scrollTop = terminal.scrollHeight;
 }
+
+async function unbindMaster() {
+  if (!confirm("确定要解除当前主人绑定吗？\n\n解除后：\n1. 大肥鱼将清除主人专属绑定，恢复自由无主状态；\n2. 任何人都可以随时重新认领大肥鱼；\n3. 你也可以稍后随时在第1步重新认领。")) {
+    return;
+  }
+  try {
+    const res = await fetch("/api/unbind_master", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    const data = await res.json();
+    alert(data.message || "已成功解除主人绑定！");
+    currentConfig.master_qq = "";
+    const masterInput = document.getElementById("master-qq");
+    if (masterInput) masterInput.value = "";
+    const dispMaster = document.getElementById("display-master-qq");
+    if (dispMaster) dispMaster.textContent = "无（自由模式）";
+    appendLog("👑 [契约] 已成功解除主人绑定，大肥鱼恢复自由无主身。");
+  } catch (err) {
+    alert("解除绑定失败: " + err.message);
+  }
+}

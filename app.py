@@ -364,6 +364,19 @@ class ButlerHTTPHandler(SimpleHTTPRequestHandler):
                 process_mgr.stop_all()
             self._send_json({"success": True})
 
+        elif parsed.path == "/api/unbind_master":
+            with config_lock:
+                user_config["master_qq"] = ""
+                save_user_config(user_config)
+                config_snapshot = dict(user_config)
+            install_dir = config_snapshot.get("install_dir")
+            if install_dir:
+                try:
+                    generate_astrbot_config(install_dir, config_snapshot)
+                except Exception:
+                    pass
+            self._send_json({"success": True, "message": "已成功解除主人绑定，大肥鱼现已恢复自由无主身！"})
+
         elif parsed.path == "/api/relogin":
             with config_lock:
                 config_snapshot = dict(user_config)

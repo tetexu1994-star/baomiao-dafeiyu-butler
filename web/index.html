@@ -281,7 +281,10 @@
             <h3>太棒啦！大肥鱼已成功唤醒并就绪！</h3>
             <p>大肥鱼已认你为唯一主人。可随时将小号拉入 QQ 群聊一起玩耍～</p>
           </div>
-          <button class="btn btn-success-action" onclick="openHelpModal()">查看互动口令 &gt;</button>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn btn-success-action" onclick="openHelpModal()">查看互动口令 &gt;</button>
+            <button class="btn btn-outline" style="font-size: 12px; padding: 7px 12px; border-radius: 8px;" onclick="unbindMaster()">👑 解除主人绑定</button>
+          </div>
         </div>
       </section>
 
@@ -359,6 +362,33 @@
               </div>
               <p class="tile-desc">查看当前好感等级（初识/依赖/心动/誓约/AI真神）与互动累计积分。</p>
               <button class="btn-copy-chip" onclick="copyText('好感度')">复制口令</button>
+            </div>
+
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag amber">萌宠抚摸</span>
+                <code>摸摸头</code>
+              </div>
+              <p class="tile-desc">轻轻摸大肥鱼的呆毛或肚皮，有几率触发打呼噜或傲娇脸红反应。</p>
+              <button class="btn-copy-chip" onclick="copyText('摸摸头')">复制口令</button>
+            </div>
+
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag emerald">打工助手</span>
+                <code>帮我写请假条</code>
+              </div>
+              <p class="tile-desc">大肥鱼化身贴心赛博秘书，自动生成高情商请假理由、周报催交与邮件润色。</p>
+              <button class="btn-copy-chip" onclick="copyText('帮我写请假条')">复制口令</button>
+            </div>
+
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag red">契约管理</span>
+                <code>解除认主</code>
+              </div>
+              <p class="tile-desc">私聊发送解绑，大肥鱼会二次确认，发送【确认解除认主】后恢复自由无主状态。</p>
+              <button class="btn-copy-chip" onclick="copyText('解除认主')">复制口令</button>
             </div>
           </div>
         </div>
