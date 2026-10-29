@@ -212,15 +212,16 @@ async function fetchModelsFromApi(force = false) {
     });
     const data = await res.json();
     if (data.success && data.models && data.models.length > 0) {
+      // 严格仅展示 Flash 极速模型
+      const flashModels = data.models.filter(m => m.id.toLowerCase().includes("flash") || m.id.includes("1017"));
+      const finalModels = flashModels.length > 0 ? flashModels : data.models;
       select.innerHTML = "";
-      data.models.forEach(m => {
+      finalModels.forEach(m => {
         const opt = document.createElement("option");
         opt.value = m.id;
         let displayName = m.name || m.id;
-        if (m.id === "deepseek-flash" || m.id.toLowerCase().includes("flash")) {
-          displayName += " (推荐·极速)";
-        } else if (m.id.toLowerCase().includes("pro")) {
-          displayName += " (强力推荐)";
+        if (!displayName.includes("极速")) {
+          displayName += " (极速响应)";
         }
         opt.textContent = displayName;
         select.appendChild(opt);

@@ -216,14 +216,11 @@ def test_llm_connection(config):
 
 
 def fetch_available_models(api_base, api_key):
-    """通过 API Key 从 upstream 真实拉取确定可用的模型列表"""
+    """通过 API Key 从 upstream 真实拉取确定可用的模型列表（专注 Flash 极速模型）"""
     api_base = str(api_base or "").strip().rstrip("/")
     api_key = str(api_key or "").strip()
     fallback = [
         {"id": "DeepSeek-V4.1-Flash 1017(1.20x)", "name": "DeepSeek-V4.1-Flash 1017(1.20x)"},
-        {"id": "deepseek-flash", "name": "deepseek-flash (标准极速)"},
-        {"id": "Deepseek-V4-Pro (3.60x)", "name": "Deepseek-V4-Pro (3.60x)"},
-        {"id": "deepseek-v4-pro", "name": "deepseek-v4-pro (标准强力)"},
     ]
     if not api_base or not api_key:
         return fallback
@@ -255,14 +252,11 @@ def fetch_available_models(api_base, api_key):
                     if mid and mid not in seen:
                         seen.add(mid)
                         models.append({"id": mid, "name": mid})
-            # 如果包含 flash 模型，同时提供全名和标准 ID
-            has_flash = any("flash" in m["id"].lower() for m in models)
-            if has_flash:
-                if not any(m["id"] == "DeepSeek-V4.1-Flash 1017(1.20x)" for m in models):
-                    models.insert(0, {"id": "DeepSeek-V4.1-Flash 1017(1.20x)", "name": "DeepSeek-V4.1-Flash 1017(1.20x)"})
-                if not any(m["id"] == "deepseek-flash" for m in models):
-                    models.append({"id": "deepseek-flash", "name": "deepseek-flash (标准极速)"})
-            return models if models else fallback
+            # 严格筛选 Flash 系列极速模型，免除多余干扰
+            flash_only = [m for m in models if "flash" in m["id"].lower() or "1017" in m["id"]]
+            if not any("1017" in m["id"] for m in flash_only):
+                flash_only.insert(0, {"id": "DeepSeek-V4.1-Flash 1017(1.20x)", "name": "DeepSeek-V4.1-Flash 1017(1.20x)"})
+            return flash_only if flash_only else fallback
     except Exception:
         return fallback
 
