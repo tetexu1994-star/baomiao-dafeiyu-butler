@@ -64,7 +64,7 @@ python build_exe.py
 ## 📱 小白用户使用三步走
 
 1. **输入主人大号 QQ**：将该 QQ 写入 AstrBot 管理员列表；
-2. **输入机器人小号 QQ**：准备用来当大肥鱼躯体的备用 QQ 号，并填写 DeepSeek API Key；
+2. **输入机器人小号 QQ**：准备用来当大肥鱼躯体的备用 QQ 号，并填写所选 AI 通道的访问密钥；
 3. **点击【一键部署并启动】**：
    * 下载并校验 NapCat 4.18.41；
    * 使用 Python 3.12 创建隔离环境并安装 AstrBot 4.29.3；
@@ -82,7 +82,7 @@ python build_exe.py
 - NapCat 使用固定版本和 SHA-256 校验；解压前会拒绝绝对路径、`..` 穿越和符号链接。
 - AstrBot 管理面板只监听 `127.0.0.1`。首次管理密码保存在 `~/.baomiao_dafeiyu/astrbot_dashboard_password.txt`。
 - AstrBot 4.29.3 需要 Python 3.12。若本机没有 Python 3.12，部署会明确失败，不会启动未完成的服务。
-- 当前版本未实现“暴喵免配通道”，界面会明确提示选择 DeepSeek，避免生成不可用配置。
+- 默认使用暴喵 API；请在暴喵 AI 管家获取访问密钥，或切换到 DeepSeek 官方 Key。
 
 ## ✅ 开发验证
 

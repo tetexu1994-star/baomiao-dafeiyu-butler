@@ -41,6 +41,12 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function getApiKeyInputValue() {
+  const inputId = currentConfig.api_provider === "deepseek" ? "api_key" : "baomiao_api_key";
+  const input = document.getElementById(inputId);
+  return input ? input.value.trim() : "";
+}
+
 function showToast(message) {
   const container = document.getElementById("toast-container");
   if (!container) {
@@ -132,8 +138,9 @@ async function loadConfig() {
     if (baomiaoKeyEl) baomiaoKeyEl.value = "";
     if (deepseekKeyEl) deepseekKeyEl.value = "";
     selectProvider(currentConfig.api_provider || "baomiao");
-    if (currentConfig.install_dir) {
-      document.getElementById("display-install-dir").textContent = currentConfig.install_dir;
+    const installDirEl = document.getElementById("display-install-dir");
+    if (installDirEl && currentConfig.install_dir) {
+      installDirEl.textContent = currentConfig.install_dir;
     }
     const wlEl = document.getElementById("whitelist_only");
     if (wlEl) wlEl.checked = !!currentConfig.whitelist_only;
@@ -149,7 +156,7 @@ async function loadConfig() {
     fetchModelsFromApi();
 
     // 二次启动智能化：如果已有完整配置，自动跳至第 03 步唤醒大肥鱼并启动服务，免去重复点击流程
-    if (currentConfig.master_qq && currentConfig.bot_qq && currentConfig.install_dir) {
+    if (currentConfig.master_qq && currentConfig.bot_qq && currentConfig.install_dir && currentConfig.api_key_set) {
       appendLog(`💡 [欢迎回来] 检测到主人 QQ (${currentConfig.master_qq}) 已就绪，自动直达【03 唤醒大肥鱼】...`);
       goToStep(3);
     }
@@ -280,7 +287,8 @@ async function goToStep(step) {
       const el = document.getElementById("baomiao_api_key");
       inputKey = el ? el.value.trim() : "";
       if (!inputKey && !currentConfig.api_key_set) {
-        inputKey = "bm-free-token";
+        showToast("请填写暴喵 API Key。");
+        return;
       }
     } else {
       const el = document.getElementById("api_key");

@@ -52,9 +52,10 @@ class GeneratorTests(unittest.TestCase):
 
     def test_baomiao_provider_is_supported(self):
         self.user_config["api_provider"] = "baomiao"
+        self.user_config["api_base"] = "https://open-ai.baomiao.cn/v1"
         config = build_astrbot_config({}, self.user_config)
         self.assertEqual(config["provider"][0]["provider"], "openai")
-        self.assertEqual(config["provider"][0]["api_base"], "https://api.deepseek.com/v1")
+        self.assertEqual(config["provider"][0]["api_base"], "https://open-ai.baomiao.cn/v1")
 
 
 class ValidationTests(unittest.TestCase):

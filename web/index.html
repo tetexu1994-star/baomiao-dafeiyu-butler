@@ -207,16 +207,16 @@
               </div>
             </div>
 
-            <!-- 访问密钥 (可留空) -->
+            <!-- 访问密钥 -->
             <div class="form-block">
               <div class="block-label-row">
-                <label for="baomiao_api_key">访问密钥（可留空）</label>
-                <span class="field-badge optional">选填</span>
+                <label for="baomiao_api_key">访问密钥</label>
+                <span class="field-badge required">必填</span>
               </div>
               
               <!-- 暴喵 Key 输入框 -->
               <div class="input-glow-box with-action" id="baomiao-key-container">
-                <input type="password" id="baomiao_api_key" placeholder="可留空，或填入暴喵 API Key" autocomplete="off">
+                <input type="password" id="baomiao_api_key" placeholder="填入暴喵 API Key" autocomplete="off">
                 <button type="button" class="btn-input-icon" onclick="toggleBaomiaoKeyVisibility()" title="切换明文">显示</button>
               </div>
 
@@ -232,7 +232,7 @@
                 <button type="button" class="btn-link-download" onclick="openExternalUrl('https://ai.baomiao.cn/')">下载暴喵 AI 管家 &gt;</button>
               </div>
 
-              <p class="block-hint">暴喵请求地址已自动配置；只有接口要求鉴权时才需要填写密钥。
+              <p class="block-hint">暴喵请求地址已自动配置；请填写访问密钥后才能连通模型。
                 <button type="button" class="btn-clear-key-link" id="btn-clear-key" onclick="clearApiKey()">清除已保存的 Key</button>
               </p>
             </div>

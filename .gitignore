@@ -15,3 +15,5 @@ config/
 qrcode.png
 
 .codegraph/
+
+.playwright-cli/
