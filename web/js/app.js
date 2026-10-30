@@ -493,7 +493,6 @@ function updateHeaderStatus(type, text) {
 }
 
 function setLoginSuccessUI() {
-  stopQrPolling();
   const placeholder = document.getElementById("qr-placeholder");
   const qrImg = document.getElementById("qr-image");
   const qrBox = document.getElementById("qr-box");
@@ -607,6 +606,7 @@ async function checkServiceStatus() {
     if (!data.success) return;
 
     if (data.is_chat_ready) {
+      stopQrPolling();
       setChatReadyUI();
       return;
     }
@@ -752,20 +752,17 @@ function initEventStream() {
         updateInstallStatus(payload);
       } else if (payload.type === "qr") {
         renderQrCode(payload.data);
-        stopQrPolling();
         appendLog("[NapCat] 已捕获登录二维码，请使用手机 QQ 扫码。");
       } else if (payload.type === "login_success") {
         setLoginSuccessUI();
         appendLog("🎉 [系统] QQ 账号登录成功！正在建立通信并自检大模型通道...");
       } else if (payload.type === "chat_ready") {
-        setChatReadyUI();
         appendLog("🚀 [系统] " + (payload.message || "大模型自检通过，大肥鱼现已真正就绪，可以在 QQ 发送消息开始对话啦！"));
       } else if (payload.type === "service_error") {
         updateHeaderStatus("error", "启动异常");
         appendLog("[系统] 服务启动异常: " + (payload.message || ""));
       } else if (payload.type === "llm_test") {
         if (payload.success) {
-          setChatReadyUI();
           appendLog("✅ [系统] " + (payload.message || "大模型通道连通正常"));
         } else {
           updateHeaderStatus("error", "大模型连通异常");
