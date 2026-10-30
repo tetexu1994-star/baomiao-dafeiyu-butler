@@ -107,7 +107,6 @@ atexit.register(_emergency_cleanup)
 
 
 def _sig_handler(sig, frame):
-    _emergency_cleanup()
     sys.exit(0)
 
 

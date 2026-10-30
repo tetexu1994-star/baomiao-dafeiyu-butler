@@ -39,6 +39,7 @@ class ProcessManager:
         self.last_qr = None
         self.is_logged_in = False
         self._onebot_cache = (0.0, False)
+        self._log_lock = threading.Lock()
         # 初始化持久化日志文件目录
         self.log_dir = os.path.join(self.install_dir, "logs")
         try:
@@ -77,20 +78,21 @@ class ProcessManager:
         formatted = f"[{timestamp}] [{tag}] {clean_text}"
         if self.log_file:
             try:
-                # 日志文件超过 10MB 时自动轮转备份，保留 1 份历史文件，防撑爆磁盘
-                if os.path.isfile(self.log_file) and os.path.getsize(self.log_file) > 10 * 1024 * 1024:
-                    backup = self.log_file + ".1"
-                    if os.path.isfile(backup):
+                with self._log_lock:
+                    # 日志文件超过 10MB 时自动轮转备份，保留 1 份历史文件，防撑爆磁盘
+                    if os.path.isfile(self.log_file) and os.path.getsize(self.log_file) > 10 * 1024 * 1024:
+                        backup = self.log_file + ".1"
+                        if os.path.isfile(backup):
+                            try:
+                                os.remove(backup)
+                            except Exception:
+                                pass
                         try:
-                            os.remove(backup)
+                            os.rename(self.log_file, backup)
                         except Exception:
                             pass
-                    try:
-                        os.rename(self.log_file, backup)
-                    except Exception:
-                        pass
-                with open(self.log_file, "a", encoding="utf-8", errors="replace") as f:
-                    f.write(formatted + "\n")
+                    with open(self.log_file, "a", encoding="utf-8", errors="replace") as f:
+                        f.write(formatted + "\n")
             except Exception:
                 pass
         if self.log_callback:
@@ -341,9 +343,6 @@ class ProcessManager:
                 ComponentDownloader.fix_windows_pywin32(venv_dir)
             except Exception:
                 pass
-
-            # 启动前自愈释放 6199 端口，避免历史僵尸进程残留造成 [Errno 10048]
-            self._release_port(self.onebot_port)
 
             self.log("AstrBot", "正在启动 AstrBot 服务...")
             env = os.environ.copy()
