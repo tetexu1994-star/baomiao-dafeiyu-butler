@@ -415,6 +415,7 @@
           <button class="btn-modal-close" onclick="closeHelpModal()">✕</button>
         </div>
         <div class="modal-body">
+          <div class="modal-section-title">🌸 形态觉醒与切换</div>
           <div class="command-deck">
             <div class="command-tile">
               <div class="tile-header">
@@ -439,26 +440,47 @@
                 <span class="tile-tag red">战斗军师</span>
                 <code>暴走⚡</code>
               </div>
-              <p class="tile-desc">唤醒 DeepSeek-R1 满血深度思考，硬核解决技术、代码与数据推理。</p>
+              <p class="tile-desc">唤醒 DeepSeek-R1 满血深度思考，硬核解决技术、代码与复杂逻辑推理。</p>
               <button class="btn-copy-chip" onclick="copyText('暴走⚡')">复制口令</button>
             </div>
 
             <div class="command-tile">
               <div class="tile-header">
+                <span class="tile-tag sky">恢复平衡</span>
+                <code>恢复默认🍚</code>
+              </div>
+              <p class="tile-desc">退出极端形态，回归元气傲娇的暴喵看板娘本体日常状态。</p>
+              <button class="btn-copy-chip" onclick="copyText('恢复默认🍚')">复制口令</button>
+            </div>
+          </div>
+
+          <div class="modal-section-title">🍚 投喂养成与好感系统</div>
+          <div class="command-deck">
+            <div class="command-tile">
+              <div class="tile-header">
                 <span class="tile-tag amber">好感契约</span>
                 <code>投喂大白饭</code>
               </div>
-              <p class="tile-desc">主人每日投喂一碗大白饭，好感度经验值 +10，解锁亲密称呼！</p>
+              <p class="tile-desc">主人每日投喂一碗大白饭，好感度经验值 +10，逐步解锁专属亲昵称呼！</p>
               <button class="btn-copy-chip" onclick="copyText('投喂大白饭')">复制口令</button>
             </div>
 
             <div class="command-tile">
               <div class="tile-header">
-                <span class="tile-tag emerald">群聊互动</span>
-                <code>偷吃白饭</code>
+                <span class="tile-tag amber">吃货进阶</span>
+                <code>投喂三文鱼刺身</code>
               </div>
-              <p class="tile-desc">群友若试图抢饭，触发【大白饭保卫战】彩蛋，大肥鱼用尾巴将群友拍飞！</p>
-              <button class="btn-copy-chip" onclick="copyText('偷吃白饭')">复制口令</button>
+              <p class="tile-desc">豪华大餐投喂！支持投喂刺身/牛排/螺蛳粉，大肥鱼会给出爆笑生动的美食点评。</p>
+              <button class="btn-copy-chip" onclick="copyText('投喂三文鱼刺身')">复制口令</button>
+            </div>
+
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag amber">肥宅快乐水</span>
+                <code>投喂珍珠奶茶</code>
+              </div>
+              <p class="tile-desc">投喂全糖加波霸奶茶，大肥鱼呆毛摇晃，好感度 +5，有几率触发打嗝彩蛋！</p>
+              <button class="btn-copy-chip" onclick="copyText('投喂珍珠奶茶')">复制口令</button>
             </div>
 
             <div class="command-tile">
@@ -466,7 +488,7 @@
                 <span class="tile-tag sky">好感查询</span>
                 <code>好感度</code>
               </div>
-              <p class="tile-desc">查看当前好感等级（初识/依赖/心动/誓约/AI真神）与互动累计积分。</p>
+              <p class="tile-desc">查看当前契约等级（初识/依赖/心动/誓约/AI真神）与互动累计积分。</p>
               <button class="btn-copy-chip" onclick="copyText('好感度')">复制口令</button>
             </div>
 
@@ -475,37 +497,61 @@
                 <span class="tile-tag amber">萌宠抚摸</span>
                 <code>摸摸头</code>
               </div>
-              <p class="tile-desc">轻轻摸大肥鱼的呆毛或肚皮，有几率触发打呼噜或傲娇脸红反应。</p>
+              <p class="tile-desc">轻轻抚摸大肥鱼的呆毛或肚皮，有高几率触发撒娇打呼噜或傲娇脸红反应。</p>
               <button class="btn-copy-chip" onclick="copyText('摸摸头')">复制口令</button>
             </div>
+          </div>
 
+          <div class="modal-section-title">🔮 趣味玩法与群聊娱乐</div>
+          <div class="command-deck">
             <div class="command-tile">
               <div class="tile-header">
                 <span class="tile-tag purple">玄学占卜</span>
                 <code>今日鱼运</code>
               </div>
-              <p class="tile-desc">摇动赛博签筒抽神签！测算今日吉凶宜忌、幸运物与大肥鱼专属吐槽。</p>
+              <p class="tile-desc">摇动赛博神签筒！测算今日吉凶宜忌、幸运数字与大肥鱼专属犀利吐槽。</p>
               <button class="btn-copy-chip" onclick="copyText('今日鱼运')">复制口令</button>
             </div>
 
             <div class="command-tile">
               <div class="tile-header">
-                <span class="tile-tag amber">吃货进阶</span>
-                <code>投喂三文鱼刺身</code>
+                <span class="tile-tag emerald">群聊争夺</span>
+                <code>偷吃白饭</code>
               </div>
-              <p class="tile-desc">万物皆可投喂！支持投喂刺身/奶茶/螺蛳粉，大肥鱼会有爆笑生动的美食点评。</p>
-              <button class="btn-copy-chip" onclick="copyText('投喂三文鱼刺身')">复制口令</button>
+              <p class="tile-desc">群友若试图抢饭，触发【大白饭保卫战】彩蛋，大肥鱼用大尾巴将抢饭者拍飞！</p>
+              <button class="btn-copy-chip" onclick="copyText('偷吃白饭')">复制口令</button>
             </div>
 
             <div class="command-tile">
               <div class="tile-header">
-                <span class="tile-tag sky">早晚安陪伴</span>
-                <code>晚安大肥鱼</code>
+                <span class="tile-tag red">群聊裁决</span>
+                <code>大肥鱼裁决</code>
               </div>
-              <p class="tile-desc">御姐态轻声用鱼尾掖紧被角哄睡；萝莉态钻进怀里陪主人数大白饭数到睡着。</p>
-              <button class="btn-copy-chip" onclick="copyText('晚安大肥鱼')">复制口令</button>
+              <p class="tile-desc">遇事不决大肥鱼拍板！掷骰子或抛硬币，裁定谁去拿外卖或今天午饭吃什么。</p>
+              <button class="btn-copy-chip" onclick="copyText('大肥鱼裁决')">复制口令</button>
             </div>
 
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag purple">二次元冷笑话</span>
+                <code>讲个笑话</code>
+              </div>
+              <p class="tile-desc">让傲娇大肥鱼给你讲个冷到结冰的程序员或二次元冷笑话，缓解疲惫。</p>
+              <button class="btn-copy-chip" onclick="copyText('讲个笑话')">复制口令</button>
+            </div>
+
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag sky">赛博歌姬</span>
+                <code>唱首歌</code>
+              </div>
+              <p class="tile-desc">触发歌词接龙与魔性哼唱彩蛋，随机唱出洗脑神曲或二次元萌曲。</p>
+              <button class="btn-copy-chip" onclick="copyText('唱首歌')">复制口令</button>
+            </div>
+          </div>
+
+          <div class="modal-section-title">💼 职场嘴替与贴心陪伴</div>
+          <div class="command-deck">
             <div class="command-tile">
               <div class="tile-header">
                 <span class="tile-tag emerald">打工嘴替</span>
@@ -517,20 +563,41 @@
 
             <div class="command-tile">
               <div class="tile-header">
-                <span class="tile-tag red">群聊判官</span>
-                <code>大肥鱼裁决</code>
+                <span class="tile-tag emerald">打工助手</span>
+                <code>帮我写请假条</code>
               </div>
-              <p class="tile-desc">遇事不决大肥鱼拍板！群聊掷点掷硬币，裁定谁去拿外卖或今天吃什么。</p>
-              <button class="btn-copy-chip" onclick="copyText('大肥鱼裁决')">复制口令</button>
+              <p class="tile-desc">大肥鱼化身贴心赛博秘书，自动生成高情商请假理由、调休申请与邮件润色。</p>
+              <button class="btn-copy-chip" onclick="copyText('帮我写请假条')">复制口令</button>
             </div>
 
             <div class="command-tile">
               <div class="tile-header">
-                <span class="tile-tag emerald">打工助手</span>
-                <code>帮我写请假条</code>
+                <span class="tile-tag emerald">职场升华</span>
+                <code>一键润色周报</code>
               </div>
-              <p class="tile-desc">大肥鱼化身贴心赛博秘书，自动生成高情商请假理由、周报催交与邮件润色。</p>
-              <button class="btn-copy-chip" onclick="copyText('帮我写请假条')">复制口令</button>
+              <p class="tile-desc">将打工碎活一键转化为高大上商业闭环行话，周报打分瞬间跃升至 S 级！</p>
+              <button class="btn-copy-chip" onclick="copyText('一键润色周报')">复制口令</button>
+            </div>
+
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag sky">早晚安陪伴</span>
+                <code>晚安大肥鱼</code>
+              </div>
+              <p class="tile-desc">御姐态轻声用鱼尾掖紧被角哄睡；萝莉态钻进怀里陪主人数大白饭数到睡着。</p>
+              <button class="btn-copy-chip" onclick="copyText('晚安大肥鱼')">复制口令</button>
+            </div>
+          </div>
+
+          <div class="modal-section-title">🛡️ 契约自检与安全管理</div>
+          <div class="command-deck">
+            <div class="command-tile">
+              <div class="tile-header">
+                <span class="tile-tag sky">通道自检</span>
+                <code>大肥鱼自检</code>
+              </div>
+              <p class="tile-desc">查看大模型响应延迟、好感度持久化锚点、以及 OneBot 通信连通状态。</p>
+              <button class="btn-copy-chip" onclick="copyText('大肥鱼自检')">复制口令</button>
             </div>
 
             <div class="command-tile">
