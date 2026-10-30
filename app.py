@@ -756,11 +756,53 @@ def start_server(port=18999):
     return server
 
 
+def open_browser_window(url):
+    """
+    在 Windows (尤其加速器提权 / 隔离环境) 下健壮唤起交互界面：
+    1. 优先尝试 Edge / Chrome 应用窗口模式 (--app=url)，避开 DDE / UIPI 消息阻断且无地址栏；
+    2. 尝试 cmd /c start "" "{url}"；
+    3. 尝试 os.startfile(url)；
+    4. 回退标准库 webbrowser.open(url)；
+    """
+    if sys.platform.startswith("win"):
+        browser_candidates = [
+            os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
+            os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
+            os.path.expandvars(r"%LocalAppData%\Microsoft\Edge\Application\msedge.exe"),
+            os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
+            os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
+            os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
+        ]
+        for exe_path in browser_candidates:
+            if os.path.isfile(exe_path):
+                try:
+                    subprocess.Popen([exe_path, f"--app={url}", "--window-size=1040,850"])
+                    return True
+                except Exception:
+                    pass
+        try:
+            subprocess.Popen(f'start "" "{url}"', shell=True)
+            return True
+        except Exception:
+            pass
+        try:
+            os.startfile(url)
+            return True
+        except Exception:
+            pass
+
+    try:
+        return webbrowser.open(url)
+    except Exception:
+        pass
+    return False
+
+
 def main():
     server = start_server(18999)
     if server is None:
         print("[系统] 检测到大肥鱼管家已在运行，正在打开现有窗口...")
-        webbrowser.open("http://127.0.0.1:18999")
+        open_browser_window("http://127.0.0.1:18999")
         return
     port = server.server_port
     url = f"http://127.0.0.1:{port}"
@@ -826,9 +868,19 @@ def main():
         except Exception as e:
             print(f"[提示] 原生窗口拉起失败，回退至浏览器: {e}")
 
-    # 回退：使用系统浏览器打开
+    # 回退：使用系统浏览器打开 (多通道兼容唤起)
     time.sleep(0.5)
-    webbrowser.open(url)
+    opened = open_browser_window(url)
+    if not opened:
+        try:
+            import tkinter as tk
+            from tkinter import messagebox
+            root = tk.Tk()
+            root.withdraw()
+            messagebox.showinfo("大肥鱼一键接入QQ", f"大肥鱼后台服务已就绪！\n\n请在浏览器中打开：\n{url}")
+            root.destroy()
+        except Exception:
+            pass
 
     print("==================================================")
     print(" [大肥鱼一键接入QQ] 已在桌面浏览器运行")
