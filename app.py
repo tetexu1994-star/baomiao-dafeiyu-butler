@@ -10,6 +10,8 @@ import queue
 import sys
 import threading
 import time
+import atexit
+import signal
 import urllib.request
 import urllib.error
 import webbrowser
@@ -91,6 +93,33 @@ process_mgr = None
 llm_ready_state = {"ready": False, "msg": ""}
 
 
+def _emergency_cleanup():
+    """主程序退出守护：确保 NapCat/AstrBot 子进程树被彻底优雅关闭，不留暗鬼僵尸进程"""
+    global process_mgr
+    try:
+        if process_mgr:
+            process_mgr.stop_all()
+    except Exception:
+        pass
+
+
+atexit.register(_emergency_cleanup)
+
+
+def _sig_handler(sig, frame):
+    _emergency_cleanup()
+    sys.exit(0)
+
+
+try:
+    signal.signal(signal.SIGINT, _sig_handler)
+    signal.signal(signal.SIGTERM, _sig_handler)
+    if hasattr(signal, "SIGBREAK"):
+        signal.signal(signal.SIGBREAK, _sig_handler)
+except Exception:
+    pass
+
+
 def broadcast_event(event_dict):
     event_broker.publish(event_dict)
 
@@ -132,6 +161,8 @@ def on_qr_event(data):
         broadcast_event({"type": "qr", "data": data.get("data")})
     elif data.get("status") in ("success", "qq_logged_in"):
         broadcast_event({"type": "login_success", "message": data.get("message", "")})
+    elif data.get("status") == "qr_expired":
+        broadcast_event({"type": "qr_expired", "message": data.get("message", "二维码已过期，请点击重新扫码换号")})
     elif data.get("status") == "failed":
         broadcast_event({"type": "service_error", "message": data.get("message", "")})
 

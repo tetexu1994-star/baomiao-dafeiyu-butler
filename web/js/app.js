@@ -753,6 +753,13 @@ function initEventStream() {
       } else if (payload.type === "qr") {
         renderQrCode(payload.data);
         appendLog("[NapCat] 已捕获登录二维码，请使用手机 QQ 扫码。");
+      } else if (payload.type === "qr_expired") {
+        const radarTag = document.querySelector(".qr-radar-tag");
+        if (radarTag) {
+          radarTag.innerHTML = '<span class="radar-ping" style="background: #ef4444;"></span><span style="color: #ef4444; font-weight: 600;">⚠️ 二维码已过期失效，请点击下方【重新扫码换号】刷新</span>';
+        }
+        updateHeaderStatus("warming", "二维码已过期");
+        appendLog("⚠️ [NapCat] 登录二维码已超时失效，请点击下方「重新扫码换号」刷新重试。");
       } else if (payload.type === "login_success") {
         setLoginSuccessUI();
         appendLog("🎉 [系统] QQ 账号登录成功！正在建立通信并自检大模型通道...");

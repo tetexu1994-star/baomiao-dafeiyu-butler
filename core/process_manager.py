@@ -77,12 +77,57 @@ class ProcessManager:
         formatted = f"[{timestamp}] [{tag}] {clean_text}"
         if self.log_file:
             try:
+                # 日志文件超过 10MB 时自动轮转备份，保留 1 份历史文件，防撑爆磁盘
+                if os.path.isfile(self.log_file) and os.path.getsize(self.log_file) > 10 * 1024 * 1024:
+                    backup = self.log_file + ".1"
+                    if os.path.isfile(backup):
+                        try:
+                            os.remove(backup)
+                        except Exception:
+                            pass
+                    try:
+                        os.rename(self.log_file, backup)
+                    except Exception:
+                        pass
                 with open(self.log_file, "a", encoding="utf-8", errors="replace") as f:
                     f.write(formatted + "\n")
             except Exception:
                 pass
         if self.log_callback:
             self.log_callback({"tag": tag, "text": clean_text})
+
+    @staticmethod
+    def _release_port(port):
+        """检查并释放被历史僵尸进程占用的本地端口（防 [Errno 10048] 端口冲突）"""
+        target_port = int(port)
+        if not sys.platform.startswith("win"):
+            return
+        try:
+            out = subprocess.check_output(
+                ["netstat", "-ano"],
+                text=True,
+                encoding="utf-8",
+                errors="ignore",
+                **_silent_kwargs()
+            )
+            my_pid = os.getpid()
+            for line in out.splitlines():
+                if f":{target_port}" in line and "LISTENING" in line:
+                    parts = line.strip().split()
+                    if parts:
+                        pid_str = parts[-1]
+                        if pid_str.isdigit():
+                            pid = int(pid_str)
+                            if pid != my_pid and pid > 0:
+                                subprocess.run(
+                                    ["taskkill", "/PID", str(pid), "/F", "/T"],
+                                    capture_output=True,
+                                    timeout=5,
+                                    check=False,
+                                    **_silent_kwargs()
+                                )
+        except Exception:
+            pass
 
     def status(self):
         with self._lock:
@@ -297,6 +342,9 @@ class ProcessManager:
             except Exception:
                 pass
 
+            # 启动前自愈释放 6199 端口，避免历史僵尸进程残留造成 [Errno 10048]
+            self._release_port(self.onebot_port)
+
             self.log("AstrBot", "正在启动 AstrBot 服务...")
             env = os.environ.copy()
             env["ASTRBOT_ROOT"] = os.path.join(self.install_dir, "AstrBot")
@@ -420,6 +468,9 @@ class ProcessManager:
                 self.is_logged_in = True
                 if self.qr_callback:
                     self.qr_callback({"type": "status", "status": "qq_logged_in", "message": "QQ 登录成功，正在建立 OneBot 通信并唤醒 AI 对话引擎..."})
+            elif any(kw in clean_line for kw in ("二维码已失效", "二维码已过期", "QRCode Expired", "qrcode expired", "二维码过期")):
+                if self.qr_callback:
+                    self.qr_callback({"type": "status", "status": "qr_expired", "message": "二维码已过期失效，请点击下方「重新扫码换号」刷新"})
             elif "https://qm.qq.com" in clean_line or "https://ssl.ptlogin2.qq.com" in clean_line:
                 for word in clean_line.split():
                     if word.startswith("http"):
@@ -461,6 +512,9 @@ class ProcessManager:
             if not self._qr_thread or not self._qr_thread.is_alive():
                 self._qr_thread = threading.Thread(target=self.check_qr_file, daemon=True)
                 self._qr_thread.start()
+
+            # 预检自愈：清理可能残留的 OneBot 端口僵尸占用
+            self._release_port(self.onebot_port)
 
             # 优化 1：优先秒级启动 NapCat！让扫码二维码在 2~3 秒内立刻渲染到前端界面！
             if not self.start_napcat(bot_qq=bot_qq):
